@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Cube Wall Screensaver</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+            body {
+                background: #000;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js"
+                }
+            }
+        </script>
+
+        <script type="module">
+            import * as THREE from "three";
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 100);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(innerWidth, innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const edgesGeometry = new THREE.EdgesGeometry(geometry);
+            const blue = new THREE.Color(0x3498db);
+            const green = new THREE.Color(0x2ecc71);
+
+            // Lights
+            const light = new THREE.DirectionalLight(0xffffff, 2);
+            light.position.set(11, 3, 10);
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0xdddddd));
+
+            // Create cubes
+            const cubes = [];
+            const white = new THREE.Color(0xffffff);
+            const black = new THREE.Color(0x000000);
+            for (let x = 0; x < 50; x++) {
+                for (let y = 0; y < 50; y++) {
+                    const color = blue.clone().lerp(green, Math.pow(x / 49, 2)).lerp(black, 0.7);
+                    const material = new THREE.MeshPhysicalMaterial({
+                        color,
+                        transparent: true,
+                        roughness: 0.7,
+                        metalness: 0.5,
+                        transmission: 0.2,
+                        thickness: 0.9,
+                    });
+                    const cube = new THREE.Mesh(geometry, material);
+                    cube.position.set(x - 25, y - 25, 0);
+
+                    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1 });
+                    const edges = new THREE.LineSegments(edgesGeometry, edgeMaterial);
+                    cube.add(edges);
+
+                    cube.userData = {
+                        baseZ: 0,
+                        animating: false,
+                        progress: 0,
+                        speed: 0,
+                        baseColor: color.clone(),
+                        targetColor: null,
+                        edges: edges
+                    };
+
+                    cubes.push(cube);
+                    scene.add(cube);
+                }
+            }
+
+            camera.position.set(11, 3, 3);
+            camera.rotation.set(0, 29 * Math.PI / 180, 0);
+
+            let frame = 0;
+            const baseCameraX = 11;
+            const baseLightX = 11;
+            const baseCameraRotation = 29 * Math.PI / 180;
+
+            function animate() {
+                // Gentle rocking motion
+                const rockOffset = Math.sin(frame * 0.005) * 0.25;
+                const rotationOffset = Math.sin(frame * 0.005) * 0.025;
+                camera.position.x = baseCameraX + rockOffset;
+                camera.rotation.y = baseCameraRotation - rotationOffset;
+                light.position.x = baseLightX + rockOffset;
+
+                cubes.forEach((cube) => {
+                    if (cube.userData.animating) {
+                        cube.userData.progress += cube.userData.speed;
+
+                        if (cube.userData.progress >= 1) {
+                            cube.userData.animating = false;
+                            cube.userData.progress = 0;
+                            cube.position.z = 0;
+                            cube.material.transmission = 0.2;
+                            cube.material.opacity = 1;
+                            cube.material.color.copy(cube.userData.baseColor);
+                            cube.userData.edges.material.opacity = 0.1;
+                            cube.userData.edges.material.color.setHex(0xffffff);
+                        } else {
+                            // Add overshoot at end
+                            const baseOffset = (1 - Math.cos(cube.userData.progress * Math.PI * 2)) * 0.05;
+                            const overshoot = cube.userData.progress > 0.9 ? Math.sin((cube.userData.progress - 0.9) * Math.PI * 10) * -0.03 : 0;
+                            const offset = baseOffset + overshoot;
+
+                            cube.position.z = offset;
+                            const t = Math.max(0, baseOffset / 0.1);
+                            cube.material.transmission = 0.2 + t * 0.05;
+                            cube.material.opacity = 1 - t * 0.02;
+                            cube.material.color.copy(cube.userData.baseColor).lerp(cube.userData.targetColor, t);
+
+                            // Update edge color and opacity
+                            cube.userData.edges.material.opacity = t;
+                            const isWhiteCube = cube.userData.targetColor.equals(white);
+                            cube.userData.edges.material.color.setHex(isWhiteCube ? 0x000000 : 0xffffff);
+                        }
+                    }
+                });
+
+                if (frame++ % 120 === 0) {
+                    cubes.forEach((cube) => {
+                        if (Math.random() < 0.03 && !cube.userData.animating) {
+                            cube.userData.animating = true;
+                            cube.userData.progress = 0;
+                            cube.userData.speed = 0.002 + Math.random() * 0.003;
+                            cube.userData.targetColor = Math.random() < 0.5 ? white : black;
+                        }
+                    });
+                }
+
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+
+            addEventListener("resize", () => {
+                camera.aspect = innerWidth / innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(innerWidth, innerHeight);
+            });
+        </script>
+    </body>
+</html>
