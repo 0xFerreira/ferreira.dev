@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>guilherme_ferreira</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #cubes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .container {
+            max-width: 700px;
+            z-index: 1;
+            position: relative;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 2rem;
+            color: #ffffff;
+        }
+
+        .manifesto {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #a0a0a0;
+            font-weight: 300;
+        }
+
+        .manifesto a {
+            color: #6b6b6b;
+            text-decoration: none;
+            font-size: 0.95em;
+            transition: color 0.2s ease;
+        }
+
+        .manifesto a:hover {
+            color: #00d9ff;
+        }
+
+        .peace {
+            display: block;
+            text-align: right;
+        }
+
+        nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            color: #00d9ff;
+            text-decoration: none;
+            font-size: 1.3rem;
+            padding: 0.5rem 0;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        nav a:hover {
+            color: #ffffff;
+            padding-left: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            nav a {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="cubes"></canvas>
+    
+    <div class="container">
+        <h1>guilherme_ferreira</h1>
+        <p class="manifesto">
+            the world now uses yyyy-mm-dd hh:mm:ss <a href="https://en.wikipedia.org/wiki/ISO_8601" target="_blank">[iso 8601]</a><br><br>
+            everywhere is utc+0, timezones indicate local daylight, not the underlying shared time <a href="https://en.wikipedia.org/wiki/Coordinated_Universal_Time" target="_blank">[utc]</a><br><br>
+            everyone uses metric <a href="https://en.wikipedia.org/wiki/International_System_of_Units" target="_blank">[si]</a><br><br>
+            every month has 4 weeks, there are 13 months, every date falls on the same day of the week <a href="https://en.wikipedia.org/wiki/International_Fixed_Calendar" target="_blank">[ifc]</a><br><br>
+            esperanto is cute. english is the lingua franca. local languages are preserved for culture <a href="https://en.wikipedia.org/wiki/Lingua_franca" target="_blank">[lingua franca]</a><br><br>
+            advertisement of any kind is punished by reeducation camps <a href="https://en.wikipedia.org/wiki/Attention_economy" target="_blank">[attention economy]</a><br><br>
+            microservices are widely acknowledged as war crimes <a href="https://grugbrain.dev/" target="_blank">[grug]</a><br><br>
+            <span class="peace">you're at peace</span>
+        </p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('cubes');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+
+        const cubes = [
+            { xRatio: 0.2, yRatio: 0.3, size: 80, rotX: 0, rotY: 0, speedX: 0.003, speedY: 0.005 },
+            { xRatio: 0.7, yRatio: 0.6, size: 60, rotX: 0, rotY: 0, speedX: 0.004, speedY: 0.003 },
+            { xRatio: 0.5, yRatio: 0.8, size: 50, rotX: 0, rotY: 0, speedX: 0.002, speedY: 0.004 }
+        ];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            cubes.forEach(cube => {
+                cube.x = width * cube.xRatio;
+                cube.y = height * cube.yRatio;
+            });
+        }
+
+        resize();
+        window.addEventListener('resize', resize);
+        
+        function drawCube(cube) {
+            const { x, y, size, rotX, rotY } = cube;
+            const s = size / 2;
+            
+            // Define cube vertices
+            const vertices = [
+                [-s, -s, -s], [s, -s, -s], [s, s, -s], [-s, s, -s],
+                [-s, -s, s], [s, -s, s], [s, s, s], [-s, s, s]
+            ];
+            
+            // Rotate and project vertices
+            const projected = vertices.map(([vx, vy, vz]) => {
+                // Rotate around Y axis
+                let x1 = vx * Math.cos(rotY) - vz * Math.sin(rotY);
+                let z1 = vx * Math.sin(rotY) + vz * Math.cos(rotY);
+                
+                // Rotate around X axis
+                let y2 = vy * Math.cos(rotX) - z1 * Math.sin(rotX);
+                let z2 = vy * Math.sin(rotX) + z1 * Math.cos(rotX);
+
+                // Simple projection with clamp to prevent extreme values
+                const scale = 200 / (200 + Math.max(z2, -150));
+                return [x + x1 * scale, y + y2 * scale];
+            });
+            
+            // Draw edges
+            const edges = [
+                [0,1], [1,2], [2,3], [3,0], // Back face
+                [4,5], [5,6], [6,7], [7,4], // Front face
+                [0,4], [1,5], [2,6], [3,7]  // Connecting edges
+            ];
+            
+            ctx.strokeStyle = '#00d9ff';
+            ctx.lineWidth = 2;
+            
+            edges.forEach(([i, j]) => {
+                ctx.beginPath();
+                ctx.moveTo(projected[i][0], projected[i][1]);
+                ctx.lineTo(projected[j][0], projected[j][1]);
+                ctx.stroke();
+            });
+        }
+        
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            cubes.forEach(cube => {
+                cube.rotX += cube.speedX;
+                cube.rotY += cube.speedY;
+                drawCube(cube);
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
