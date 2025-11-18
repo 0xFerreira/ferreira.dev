@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MapLibre GL JS - 3D Terrain</title>
+    <title>MapLibre GL JS v5.13.0 - 3D Terrain</title>
     <link href="https://unpkg.com/maplibre-gl@^5.13.0/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@^5.13.0/dist/maplibre-gl.js"></script>
     <style>
@@ -64,6 +64,7 @@
 </head>
 <body>
     <div class="elevation-control">
+        <div style="font-size: 10px; color: #666; margin-bottom: 10px;">MapLibre GL JS v5.13.0</div>
         <label>
             Tile Server:
         </label>
@@ -100,6 +101,13 @@
         <button id="toggle3D" style="margin-top: 10px; padding: 8px 16px; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; background: white; font-size: 12px;">
             Enable 3D Mode
         </button>
+
+        <div style="margin-top: 10px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggleRgbLayer" style="width: auto; margin-right: 8px;">
+                <span style="font-size: 12px;">Show AGScan RGB Layer</span>
+            </label>
+        </div>
     </div>
     <div id="map"></div>
     <script>
@@ -255,6 +263,28 @@
                         url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
                         tileSize: 256
                     },
+                    polygonSource: {
+                        type: 'geojson',
+                        data: {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Polygon',
+                                coordinates: [[
+                                    [-44.305744, -21.349189],
+                                    [-44.301744, -21.349189],
+                                    [-44.301744, -21.353189],
+                                    [-44.305744, -21.353189],
+                                    [-44.305744, -21.349189]
+                                ]]
+                            }
+                        }
+                    },
+                    agscanRgb: {
+                        type: 'raster',
+                        tiles: ['https://tiles.agscan.com.br/rgb/ddd0a33d-31f1-4400-94b0-831ff0fe8563/{z}/{x}/{y}.png'],
+                        tileSize: 512,
+                        maxzoom: 22
+                    }
                 },
                 layers: [
                     {
@@ -263,11 +293,37 @@
                         source: 'satellite'
                     },
                     {
+                        id: 'agscan-rgb',
+                        type: 'raster',
+                        source: 'agscanRgb',
+                        layout: {
+                            'visibility': 'none'
+                        }
+                    },
+                    {
                         id: 'color-relief',
                         type: 'color-relief',
                         source: 'terrainSource',
                         paint: {
                             'color-relief-color': generateColorRelief(0.1, 3000)
+                        }
+                    },
+                    {
+                        id: 'polygon',
+                        type: 'fill',
+                        source: 'polygonSource',
+                        paint: {
+                            'fill-color': '#ff0000',
+                            'fill-opacity': 0.3
+                        }
+                    },
+                    {
+                        id: 'polygon-outline',
+                        type: 'line',
+                        source: 'polygonSource',
+                        paint: {
+                            'line-color': '#ff0000',
+                            'line-width': 2
                         }
                     }
                 ]
@@ -286,6 +342,7 @@
         // Force MapLibre Demo to be selected on load
         document.getElementById('tileServer').value = 'maplibre';
         document.getElementById('colorScheme').value = 'atlas';
+        document.getElementById('toggleRgbLayer').checked = false;
 
         // Update color relief based on current tile server
         function updateColorRelief() {
@@ -431,12 +488,20 @@
             }
         }
 
+        // RGB layer toggle
+        function toggleRgbLayer() {
+            const checkbox = document.getElementById('toggleRgbLayer');
+            const visibility = checkbox.checked ? 'visible' : 'none';
+            map.setLayoutProperty('agscan-rgb', 'visibility', visibility);
+        }
+
         // Event listeners
         document.getElementById('maplibreElevation').addEventListener('input', updateColorRelief);
         document.getElementById('agscanElevation').addEventListener('input', updateColorRelief);
         document.getElementById('tileServer').addEventListener('change', switchTileServer);
         document.getElementById('colorScheme').addEventListener('change', updateColorRelief);
         document.getElementById('toggle3D').addEventListener('click', toggle3DMode);
+        document.getElementById('toggleRgbLayer').addEventListener('change', toggleRgbLayer);
     </script>
 </body>
 </html>
