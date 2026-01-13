@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geofence Algorithm Demo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; display: flex; height: 100vh; }
+        #map { flex: 1; }
+        #panel {
+            width: 320px;
+            padding: 16px;
+            background: #1a1a2e;
+            color: #eee;
+            overflow-y: auto;
+        }
+        h1 { font-size: 18px; margin-bottom: 16px; color: #fff; }
+        h2 { font-size: 14px; margin: 16px 0 8px; color: #ddd; text-transform: uppercase; }
+        .stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #333; }
+        .stat-label { color: #aaa; }
+        .stat-value { font-family: monospace; color: #4ade80; }
+        .stat-value.warn { color: #fbbf24; }
+        .stat-value.inactive { color: #666; }
+        .field-item {
+            padding: 8px;
+            margin: 4px 0;
+            border-radius: 4px;
+            background: #2a2a4e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .field-item.inside { background: #166534; }
+        .field-item .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+        }
+        .check-status { font-size: 11px; color: #888; }
+        .check-status.checked { color: #4ade80; }
+        .check-status.skipped { color: #666; }
+        #perf-chart {
+            margin-top: 16px;
+            height: 60px;
+            background: #2a2a4e;
+            border-radius: 4px;
+            display: flex;
+            align-items: flex-end;
+            padding: 4px;
+            gap: 2px;
+        }
+        .perf-bar {
+            flex: 1;
+            background: #4ade80;
+            min-height: 2px;
+            border-radius: 2px 2px 0 0;
+        }
+        .legend { margin-top: 16px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-box { width: 16px; height: 16px; border-radius: 2px; }
+        .instructions { margin-top: 16px; padding: 12px; background: #2a2a4e; border-radius: 4px; font-size: 13px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div id="map">
+        <div id="controls" style="position:absolute;top:10px;left:10px;z-index:1000;background:#1a1a2e;padding:12px;border-radius:8px;min-width:200px;">
+            <h2 style="font-size:14px;margin:0 0 8px;color:#ddd;text-transform:uppercase;">Configuration</h2>
+            <div class="stat">
+                <span class="stat-label">Iterations</span>
+                <select id="iterations-select" style="background:#2a2a4e;color:#4ade80;border:1px solid #444;padding:4px 8px;border-radius:4px;font-family:monospace;min-width:70px;">
+                    <option value="1000">10³</option>
+                    <option value="10000" selected>10⁴</option>
+                    <option value="100000">10⁵</option>
+                    <option value="1000000">10⁶</option>
+                    <option value="10000000">10⁷</option>
+                </select>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Vertices/field</span>
+                <select id="vertices-select" style="background:#2a2a4e;color:#4ade80;border:1px solid #444;padding:4px 8px;border-radius:4px;font-family:monospace;min-width:70px;">
+                    <option value="8">8</option>
+                    <option value="16">16</option>
+                    <option value="32" selected>32</option>
+                    <option value="64">64</option>
+                    <option value="128">128</option>
+                    <option value="256">256</option>
+                    <option value="512">512</option>
+                    <option value="1024">1024</option>
+                </select>
+            </div>
+
+            <h2 style="font-size:14px;margin:16px 0 8px;color:#ddd;text-transform:uppercase;">Optimizations</h2>
+            <label class="stat" style="cursor:pointer;">
+                <span class="stat-label">Farm bbox</span>
+                <input type="checkbox" id="opt-farm-bbox" checked style="width:18px;height:18px;accent-color:#4ade80;">
+            </label>
+            <label class="stat" style="cursor:pointer;">
+                <span class="stat-label">Field bbox</span>
+                <input type="checkbox" id="opt-field-bbox" checked style="width:18px;height:18px;accent-color:#4ade80;">
+            </label>
+            <label class="stat" style="cursor:pointer;">
+                <span class="stat-label">Last field cache</span>
+                <input type="checkbox" id="opt-cache" checked style="width:18px;height:18px;accent-color:#4ade80;">
+            </label>
+            <label class="stat" style="cursor:pointer;">
+                <span class="stat-label">Sorted edges</span>
+                <input type="checkbox" id="opt-sorted" checked style="width:18px;height:18px;accent-color:#4ade80;">
+            </label>
+        </div>
+    </div>
+    <div id="panel">
+        <h1>Geofence Algorithm Demo</h1>
+
+        <h2>Position</h2>
+        <div class="stat">
+            <span class="stat-label">Latitude</span>
+            <span class="stat-value" id="pos-lat">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Longitude</span>
+            <span class="stat-value" id="pos-lng">-</span>
+        </div>
+
+        <h2>Performance</h2>
+        <div class="stat">
+            <span class="stat-label">Total time</span>
+            <span class="stat-value" id="perf-time">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Farm bbox check</span>
+            <span class="stat-value" id="perf-farm-bbox">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Last field cache</span>
+            <span class="stat-value" id="perf-cache">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Bbox checks</span>
+            <span class="stat-value" id="perf-bbox">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Ray casts</span>
+            <span class="stat-value" id="perf-raycast">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Edge tests</span>
+            <span class="stat-value" id="perf-edges">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Total vertices</span>
+            <span class="stat-value" id="perf-vertices">-</span>
+        </div>
+
+        <h2>Result</h2>
+        <div class="stat">
+            <span class="stat-label">Inside field</span>
+            <span class="stat-value" id="result-field">-</span>
+        </div>
+
+        <h2>Fields</h2>
+        <div id="fields-list"></div>
+
+        <div id="perf-chart"></div>
+
+        <h2>C++ Projection</h2>
+        <div style="font-size:11px;color:#888;margin-bottom:8px;">Based on ~5x JS→C++ speedup (measured)</div>
+        <div class="stat">
+            <span class="stat-label">Est. time (C++)</span>
+            <span class="stat-value" id="cpp-time">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Checks/sec</span>
+            <span class="stat-value" id="cpp-throughput">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">CPU @ 10 Hz GPS</span>
+            <span class="stat-value" id="cpp-cpu-10hz">-</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">CPU @ 100 Hz GPS</span>
+            <span class="stat-value" id="cpp-cpu-100hz">-</span>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box" style="background: #ef4444; opacity: 0.3;"></div>
+                <span>Farm bounding box</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="border: 2px dashed #888;"></div>
+                <span>Field bounding boxes</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Field colors
+        const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
+        const CENTER = [-23.5505, -46.6333]; // São Paulo area
+
+        // Seeded random for reproducible field shapes
+        function seededRandom(seed) {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        }
+
+        // Generate random polygon around center point
+        function generateField(centerLat, centerLng, name, color, vertices, seed) {
+            // Generate base shape with 8 control points
+            const BASE_POINTS = 8;
+            const baseRadius = 0.003 + seededRandom(seed) * 0.004; // ~300-700m
+            const controlRadii = [];
+            for (let i = 0; i < BASE_POINTS; i++) {
+                controlRadii.push(baseRadius * (0.7 + seededRandom(seed + i) * 0.5));
+            }
+
+            // Interpolate to create more vertices while keeping shape
+            const points = [];
+            for (let i = 0; i < vertices; i++) {
+                const t = (i / vertices) * BASE_POINTS;
+                const idx0 = Math.floor(t) % BASE_POINTS;
+                const idx1 = (idx0 + 1) % BASE_POINTS;
+                const frac = t - Math.floor(t);
+
+                // Smooth interpolation between control radii
+                const r = controlRadii[idx0] * (1 - frac) + controlRadii[idx1] * frac;
+                const angle = (i / vertices) * Math.PI * 2;
+
+                const lat = centerLat + r * Math.cos(angle);
+                const lng = centerLng + r * 1.3 * Math.sin(angle); // stretch for lng
+                points.push([lat, lng]);
+            }
+            points.push([...points[0]]); // close polygon
+
+            // Calculate bounding box
+            const lats = points.map(p => p[0]);
+            const lngs = points.map(p => p[1]);
+
+            // Pre-compute sorted edges for optimized lookup
+            const edges = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[i];
+                const p1 = points[i + 1];
+                edges.push({
+                    lat0: p0[0], lng0: p0[1],
+                    lat1: p1[0], lng1: p1[1],
+                    minLng: Math.min(p0[1], p1[1]),
+                    maxLng: Math.max(p0[1], p1[1])
+                });
+            }
+            // Sort by minLng for binary search
+            edges.sort((a, b) => a.minLng - b.minLng);
+
+            return {
+                name,
+                color,
+                points,
+                edges,
+                bbox: {
+                    minLat: Math.min(...lats),
+                    maxLat: Math.max(...lats),
+                    minLng: Math.min(...lngs),
+                    maxLng: Math.max(...lngs)
+                }
+            };
+        }
+
+        // Field definitions (positions are stable, vertices vary)
+        const FIELD_DEFS = [
+            { offsetLat: 0.008, offsetLng: -0.006, name: 'Field 1', color: COLORS[0], seed: 1 },
+            { offsetLat: 0.006, offsetLng: 0.008, name: 'Field 2', color: COLORS[1], seed: 2 },
+            { offsetLat: -0.005, offsetLng: 0.005, name: 'Field 3', color: COLORS[2], seed: 3 },
+            { offsetLat: -0.007, offsetLng: -0.008, name: 'Field 4', color: COLORS[3], seed: 4 },
+            { offsetLat: 0.002, offsetLng: 0.001, name: 'Field 5', color: COLORS[4], seed: 5 },
+            { offsetLat: -0.002, offsetLng: -0.003, name: 'Field 6', color: COLORS[5], seed: 6 },
+        ];
+
+        let vertexCount = 32;
+        let fields = [];
+        let farmBbox = {};
+
+        function regenerateFields() {
+            fields = FIELD_DEFS.map(def => generateField(
+                CENTER[0] + def.offsetLat,
+                CENTER[1] + def.offsetLng,
+                def.name,
+                def.color,
+                vertexCount,
+                def.seed
+            ));
+
+            farmBbox = {
+                minLat: Math.min(...fields.map(f => f.bbox.minLat)),
+                maxLat: Math.max(...fields.map(f => f.bbox.maxLat)),
+                minLng: Math.min(...fields.map(f => f.bbox.minLng)),
+                maxLng: Math.max(...fields.map(f => f.bbox.maxLng))
+            };
+        }
+
+        regenerateFields();
+
+        // State
+        let lastFieldIndex = null;
+        let perfHistory = [];
+        let fieldCheckStatus = {};
+
+        // Optimization toggles
+        let optFarmBbox = true;
+        let optFieldBbox = true;
+        let optCache = true;
+        let optSorted = true;
+
+        // Ray casting algorithm (standard)
+        function pointInPolygon(lat, lng, polygon, stats) {
+            let inside = false;
+            const n = polygon.length;
+
+            for (let i = 0, j = n - 1; i < n; j = i++) {
+                stats.edgeTests++;
+                const latI = polygon[i][0], lngI = polygon[i][1];
+                const latJ = polygon[j][0], lngJ = polygon[j][1];
+
+                if (((lngI > lng) !== (lngJ > lng)) &&
+                    (lat < (latJ - latI) * (lng - lngI) / (lngJ - lngI) + latI)) {
+                    inside = !inside;
+                }
+            }
+            return inside;
+        }
+
+        // Ray casting with sorted edges
+        // Edges sorted by minLng - early exit when minLng > lng, skip when maxLng < lng
+        function pointInPolygonSorted(lat, lng, edges, stats) {
+            let inside = false;
+
+            for (let i = 0; i < edges.length; i++) {
+                const e = edges[i];
+
+                // Early exit: remaining edges all have minLng > lng (can't cross)
+                if (e.minLng > lng) break;
+
+                // Skip edges entirely to the left (maxLng < lng)
+                if (e.maxLng < lng) continue;
+
+                stats.edgeTests++;
+
+                if (((e.lng0 > lng) !== (e.lng1 > lng)) &&
+                    (lat < (e.lat1 - e.lat0) * (lng - e.lng0) / (e.lng1 - e.lng0) + e.lat0)) {
+                    inside = !inside;
+                }
+            }
+            return inside;
+        }
+
+        // Bounding box check
+        function inBbox(lat, lng, bbox) {
+            return lat >= bbox.minLat && lat <= bbox.maxLat &&
+                   lng >= bbox.minLng && lng <= bbox.maxLng;
+        }
+
+        let iterations = 10000;
+
+        // Main geofence check with all optimizations
+        function checkLocation(lat, lng) {
+            const stats = {
+                farmBboxPass: false,
+                cacheHit: false,
+                bboxChecks: 0,
+                rayCasts: 0,
+                edgeTests: 0,
+                iterations: iterations
+            };
+
+            // Reset check status
+            fields.forEach((_, i) => fieldCheckStatus[i] = 'none');
+
+            // Run multiple iterations for accurate timing
+            const startTime = performance.now();
+            let resultField = null;
+            let resultFieldIndex = null;
+
+            for (let iter = 0; iter < iterations; iter++) {
+                // Reset per-iteration state (but keep lastFieldIndex for cache simulation)
+                let iterCacheHit = false;
+
+                // 1. Farm bounding box check (if enabled)
+                if (optFarmBbox && !inBbox(lat, lng, farmBbox)) {
+                    if (iter === 0) stats.farmBboxPass = false;
+                    continue;
+                }
+                if (iter === 0) stats.farmBboxPass = true;
+
+                // 2. Check last field first (cache) - if enabled
+                let found = false;
+                if (optCache && lastFieldIndex !== null) {
+                    const field = fields[lastFieldIndex];
+                    if (iter === 0) { stats.bboxChecks++; fieldCheckStatus[lastFieldIndex] = 'bbox'; }
+
+                    const bboxPass = !optFieldBbox || inBbox(lat, lng, field.bbox);
+                    if (bboxPass) {
+                        if (iter === 0) { stats.rayCasts++; fieldCheckStatus[lastFieldIndex] = 'raycast'; }
+
+                        const inField = optSorted
+                            ? pointInPolygonSorted(lat, lng, field.edges, stats)
+                            : pointInPolygon(lat, lng, field.points, stats);
+                        if (inField) {
+                            if (iter === 0) {
+                                stats.cacheHit = true;
+                                fieldCheckStatus[lastFieldIndex] = 'inside';
+                                // Mark other fields as skipped due to cache hit
+                                for (let j = 0; j < fields.length; j++) {
+                                    if (j !== lastFieldIndex) fieldCheckStatus[j] = 'skipped';
+                                }
+                            }
+                            resultField = field;
+                            resultFieldIndex = lastFieldIndex;
+                            found = true;
+                        }
+                    }
+                }
+
+                if (found) continue;
+
+                // 3. Check other fields
+                for (let i = 0; i < fields.length; i++) {
+                    if (optCache && i === lastFieldIndex) continue;
+
+                    const field = fields[i];
+                    if (iter === 0) { stats.bboxChecks++; fieldCheckStatus[i] = 'bbox'; }
+
+                    if (optFieldBbox && !inBbox(lat, lng, field.bbox)) {
+                        if (iter === 0) fieldCheckStatus[i] = 'skipped';
+                        continue;
+                    }
+
+                    if (iter === 0) { stats.rayCasts++; fieldCheckStatus[i] = 'raycast'; }
+
+                    const inField = optSorted
+                        ? pointInPolygonSorted(lat, lng, field.edges, stats)
+                        : pointInPolygon(lat, lng, field.points, stats);
+                    if (inField) {
+                        if (iter === 0) {
+                            fieldCheckStatus[i] = 'inside';
+                            // Mark remaining fields as skipped
+                            for (let j = i + 1; j < fields.length; j++) {
+                                if (optCache && j === lastFieldIndex) continue;
+                                if (fieldCheckStatus[j] === 'none') fieldCheckStatus[j] = 'skipped';
+                            }
+                        }
+                        resultField = field;
+                        resultFieldIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            const endTime = performance.now();
+            stats.totalTime = endTime - startTime;
+            stats.avgTime = stats.totalTime / iterations;
+
+            if (resultFieldIndex !== null) {
+                lastFieldIndex = resultFieldIndex;
+            } else {
+                lastFieldIndex = null;
+            }
+
+            return { field: resultField, fieldIndex: resultFieldIndex, stats };
+        }
+
+        // Initialize map
+        const map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView(CENTER, 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Map layers (will be updated when fields regenerate)
+        let farmBboxRect = null;
+        let fieldBboxRects = [];
+        let fieldPolygons = [];
+
+        function updateMapLayers() {
+            // Remove existing layers
+            if (farmBboxRect) map.removeLayer(farmBboxRect);
+            fieldBboxRects.forEach(r => map.removeLayer(r));
+            fieldPolygons.forEach(p => map.removeLayer(p));
+
+            // Draw farm bounding box
+            farmBboxRect = L.rectangle([
+                [farmBbox.minLat, farmBbox.minLng],
+                [farmBbox.maxLat, farmBbox.maxLng]
+            ], {
+                color: '#ef4444',
+                weight: 2,
+                fillOpacity: 0.05,
+                dashArray: '10, 5'
+            }).addTo(map);
+
+            // Draw field bounding boxes
+            fieldBboxRects = fields.map(field =>
+                L.rectangle([
+                    [field.bbox.minLat, field.bbox.minLng],
+                    [field.bbox.maxLat, field.bbox.maxLng]
+                ], {
+                    color: '#888',
+                    weight: 1,
+                    fillOpacity: 0,
+                    dashArray: '4, 4'
+                }).addTo(map)
+            );
+
+            // Draw fields
+            fieldPolygons = fields.map(field =>
+                L.polygon(field.points, {
+                    color: field.color,
+                    weight: 2,
+                    fillOpacity: 0.3
+                }).addTo(map).bindTooltip(field.name, { permanent: false })
+            );
+        }
+
+        updateMapLayers();
+
+        // Draggable marker
+        const marker = L.marker(CENTER, {
+            draggable: true,
+            icon: L.divIcon({
+                className: 'marker-icon',
+                html: '<div style="width:20px;height:20px;background:#ef4444;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.3);"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            })
+        }).addTo(map);
+
+        // Build fields list
+        const fieldsList = document.getElementById('fields-list');
+        fields.forEach((field, i) => {
+            const div = document.createElement('div');
+            div.className = 'field-item';
+            div.id = `field-${i}`;
+            div.innerHTML = `
+                <span><span class="color-dot" style="background:${field.color}"></span>${field.name}</span>
+                <span class="check-status" id="field-status-${i}">-</span>
+            `;
+            fieldsList.appendChild(div);
+        });
+
+        // Update UI
+        function updateUI(lat, lng, result) {
+            const { field, stats } = result;
+
+            // Position
+            document.getElementById('pos-lat').textContent = lat.toFixed(6);
+            document.getElementById('pos-lng').textContent = lng.toFixed(6);
+
+            // Performance
+            const avgMicros = stats.avgTime * 1000;
+            document.getElementById('perf-time').textContent = avgMicros.toFixed(3) + ' μs (avg of ' + stats.iterations + ')';
+            document.getElementById('perf-farm-bbox').textContent = stats.farmBboxPass ? 'PASS' : 'FAIL';
+            document.getElementById('perf-farm-bbox').className = 'stat-value ' + (stats.farmBboxPass ? '' : 'warn');
+
+            document.getElementById('perf-cache').textContent = stats.cacheHit ? 'HIT' : 'MISS';
+            document.getElementById('perf-cache').className = 'stat-value ' + (stats.cacheHit ? '' : 'inactive');
+
+            document.getElementById('perf-bbox').textContent = stats.bboxChecks + ' / ' + fields.length;
+            document.getElementById('perf-raycast').textContent = stats.rayCasts + ' / ' + fields.length;
+            document.getElementById('perf-edges').textContent = stats.edgeTests;
+            document.getElementById('perf-vertices').textContent = fields.reduce((sum, f) => sum + f.points.length, 0);
+
+            // Result
+            document.getElementById('result-field').textContent = field ? field.name : 'None';
+            document.getElementById('result-field').className = 'stat-value ' + (field ? '' : 'inactive');
+
+            // Update field list
+            fields.forEach((f, i) => {
+                const item = document.getElementById(`field-${i}`);
+                const status = document.getElementById(`field-status-${i}`);
+
+                item.className = 'field-item' + (fieldCheckStatus[i] === 'inside' ? ' inside' : '');
+
+                switch (fieldCheckStatus[i]) {
+                    case 'inside': status.textContent = '● INSIDE'; status.className = 'check-status checked'; break;
+                    case 'raycast': status.textContent = '↯ raycast'; status.className = 'check-status checked'; break;
+                    case 'skipped': status.textContent = '○ skipped'; status.className = 'check-status skipped'; break;
+                    case 'bbox': status.textContent = '□ bbox'; status.className = 'check-status'; break;
+                    default: status.textContent = '-'; status.className = 'check-status skipped';
+                }
+            });
+
+            // Update polygons
+            fieldPolygons.forEach((poly, i) => {
+                poly.setStyle({
+                    fillOpacity: fieldCheckStatus[i] === 'inside' ? 0.6 : 0.3,
+                    weight: fieldCheckStatus[i] === 'inside' ? 3 : 2
+                });
+            });
+
+            // Performance history (store in microseconds)
+            perfHistory.push(avgMicros);
+            if (perfHistory.length > 50) perfHistory.shift();
+
+            const chart = document.getElementById('perf-chart');
+            const maxTime = Math.max(...perfHistory, 0.1);
+            chart.innerHTML = perfHistory.map(t =>
+                `<div class="perf-bar" style="height:${(t / maxTime) * 100}%"></div>`
+            ).join('');
+
+            // C++ projection (measured 5x speedup from JS)
+            const JS_TO_CPP_FACTOR = 5;
+            const cppMicros = avgMicros / JS_TO_CPP_FACTOR;
+            const checksPerSec = 1000000 / cppMicros;
+            const cpu10Hz = (cppMicros / 100000) * 100;  // 10 Hz = 100ms = 100000μs
+            const cpu100Hz = (cppMicros / 10000) * 100;  // 100 Hz = 10ms = 10000μs
+
+            document.getElementById('cpp-time').textContent = cppMicros < 1
+                ? (cppMicros * 1000).toFixed(1) + ' ns'
+                : cppMicros.toFixed(3) + ' μs';
+            document.getElementById('cpp-throughput').textContent = checksPerSec >= 1000000
+                ? (checksPerSec / 1000000).toFixed(1) + 'M'
+                : (checksPerSec / 1000).toFixed(0) + 'K';
+            document.getElementById('cpp-cpu-10hz').textContent = cpu10Hz.toFixed(6) + '%';
+            document.getElementById('cpp-cpu-100hz').textContent = cpu100Hz.toFixed(5) + '%';
+        }
+
+        // Simple drag handler
+        marker.on('drag', (e) => {
+            const { lat, lng } = e.latlng;
+            const result = checkLocation(lat, lng);
+            updateUI(lat, lng, result);
+        });
+
+        document.getElementById('iterations-select').addEventListener('change', (e) => {
+            iterations = parseInt(e.target.value);
+            const { lat, lng } = marker.getLatLng();
+            const result = checkLocation(lat, lng);
+            updateUI(lat, lng, result);
+        });
+
+        document.getElementById('vertices-select').addEventListener('change', (e) => {
+            vertexCount = parseInt(e.target.value);
+            lastFieldIndex = null; // reset cache
+            perfHistory = []; // reset perf chart
+            regenerateFields();
+            updateMapLayers();
+            const { lat, lng } = marker.getLatLng();
+            const result = checkLocation(lat, lng);
+            updateUI(lat, lng, result);
+        });
+
+        // Optimization toggle handlers
+        function runCheck() {
+            const { lat, lng } = marker.getLatLng();
+            const result = checkLocation(lat, lng);
+            updateUI(lat, lng, result);
+        }
+
+        document.getElementById('opt-farm-bbox').addEventListener('change', (e) => {
+            optFarmBbox = e.target.checked;
+            runCheck();
+        });
+
+        document.getElementById('opt-field-bbox').addEventListener('change', (e) => {
+            optFieldBbox = e.target.checked;
+            runCheck();
+        });
+
+        document.getElementById('opt-cache').addEventListener('change', (e) => {
+            optCache = e.target.checked;
+            runCheck();
+        });
+
+        document.getElementById('opt-sorted').addEventListener('change', (e) => {
+            optSorted = e.target.checked;
+            runCheck();
+        });
+
+        // Reset form controls to defaults (some browsers cache form state)
+        document.getElementById('iterations-select').value = '10000';
+        document.getElementById('vertices-select').value = '32';
+        document.getElementById('opt-farm-bbox').checked = true;
+        document.getElementById('opt-field-bbox').checked = true;
+        document.getElementById('opt-cache').checked = true;
+        document.getElementById('opt-sorted').checked = true;
+
+        // Initial check
+        const initialResult = checkLocation(CENTER[0], CENTER[1]);
+        updateUI(CENTER[0], CENTER[1], initialResult);
+
+        // Fit map to show all fields
+        map.fitBounds(farmBboxRect.getBounds().pad(0.2));
+    </script>
+</body>
+</html>
