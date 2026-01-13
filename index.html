@@ -71,33 +71,40 @@
             text-align: right;
         }
 
-        nav {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+        .prototypes {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #333;
         }
 
-        nav a {
+        .prototypes h2 {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #666;
+            margin-bottom: 1rem;
+            text-transform: lowercase;
+        }
+
+        .prototypes ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1.5rem;
+        }
+
+        .prototypes a {
             color: #00d9ff;
             text-decoration: none;
-            font-size: 1.3rem;
-            padding: 0.5rem 0;
-            transition: all 0.2s ease;
-            display: inline-block;
+            transition: color 0.2s ease;
         }
 
-        nav a:hover {
+        .prototypes a:hover {
             color: #ffffff;
-            padding-left: 0.5rem;
         }
 
         @media (max-width: 768px) {
             h1 {
                 font-size: 2.5rem;
-            }
-
-            nav a {
-                font-size: 1.1rem;
             }
         }
     </style>
@@ -117,6 +124,15 @@
             microservices are widely acknowledged as war crimes <a href="https://grugbrain.dev/" target="_blank">[grug]</a><br><br>
             <span class="peace">you're at peace</span>
         </p>
+
+        <div class="prototypes">
+            <h2>prototypes</h2>
+            <ul>
+                <li><a href="proto/geofence.html">geofence</a></li>
+                <li><a href="proto/truck-3d.html">truck-3d</a></li>
+                <li><a href="proto/screensaver.html">screensaver</a></li>
+            </ul>
+        </div>
     </div>
 
     <script>
