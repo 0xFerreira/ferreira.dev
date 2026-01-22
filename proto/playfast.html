@@ -137,6 +137,8 @@
         .card .meta .accent { color: var(--accent); }
         .card .meta .danger { color: #ef4444; }
         .card.selected .meta .accent, .card.selected .meta .danger { color: var(--text); }
+        .gender-m { color: #60a5fa; }
+        .gender-f { color: #f472b6; }
 
         .collapsed-selection {
             display: flex;
@@ -754,7 +756,7 @@
                         rules: {
                             age: { text: `${ranges.minAge}-${ranges.maxAge}y`, ok: ageOk },
                             level: { text: `L${ranges.minLevel}-${ranges.maxLevel}`, ok: levelOk },
-                            gender: { text: ranges.requiresGender ? (ranges.requiresGender === 'M' ? '♂ only' : '♀ only') : '', ok: genderOk }
+                            gender: { text: ranges.requiresGender ? (ranges.requiresGender === 'M' ? '♂' : '♀') : '', ok: genderOk, value: ranges.requiresGender }
                         }
                     }
                 }
@@ -841,7 +843,7 @@
                             <div v-for="s in students" :key="s.id" class="card" :class="{ selected: selectedStudent?.id === s.id }" @click="selectStudent(s)">
                                 <div class="title">{{ s.name }}</div>
                                 <div class="meta">
-                                    <span>{{ s.gender === 'M' ? '♂' : '♀' }}</span>
+                                    <span :class="s.gender === 'M' ? 'gender-m' : 'gender-f'">{{ s.gender === 'M' ? '♂' : '♀' }}</span>
                                     <span>{{ s.age }}y</span>
                                     <span>L{{ s.level }}</span>
                                     <span :class="s.credits === 0 ? 'danger' : 'accent'">{{ s.credits }} cr</span>
@@ -851,7 +853,7 @@
                         <div v-else class="collapsed-selection">
                             <div class="selected-info">
                                 <span class="selected-name">{{ selectedStudent.name }}</span>
-                                <span class="selected-meta">{{ selectedStudent.gender === 'M' ? '♂' : '♀' }} · {{ selectedStudent.age }}y · L{{ selectedStudent.level }} · {{ selectedStudent.credits }} cr</span>
+                                <span class="selected-meta"><span :class="selectedStudent.gender === 'M' ? 'gender-m' : 'gender-f'">{{ selectedStudent.gender === 'M' ? '♂' : '♀' }}</span> · {{ selectedStudent.age }}y · L{{ selectedStudent.level }} · {{ selectedStudent.credits }} cr</span>
                             </div>
                             <button class="btn-change" @click="isChangingStudent = true">Change</button>
                         </div>
@@ -927,7 +929,7 @@
                                             <template v-if="slot.rules">
                                                 <div class="slot-rule" :class="{ mismatch: !slot.rules.age.ok }">{{ slot.rules.age.text }}</div>
                                                 <div class="slot-rule" :class="{ mismatch: !slot.rules.level.ok }">{{ slot.rules.level.text }}</div>
-                                                <div v-if="slot.rules.gender?.text" class="slot-rule" :class="{ mismatch: !slot.rules.gender.ok }">{{ slot.rules.gender.text }}</div>
+                                                <div v-if="slot.rules.gender?.text" class="slot-rule" :class="[{ mismatch: !slot.rules.gender.ok }, slot.rules.gender.value === 'M' ? 'gender-m' : 'gender-f']">{{ slot.rules.gender.text }} only</div>
                                             </template>
                                             <!-- Count (corner) -->
                                             <div v-if="slot.status === 'booked'" class="slot-count">{{ slot.count }}/{{ slot.capacity }}</div>
@@ -963,7 +965,7 @@
                                             <span class="popover-range">{{ popover.slot.rules?.age?.text }} · {{ popover.slot.rules?.level?.text }}<template v-if="popover.slot.rules?.gender?.text"> · {{ popover.slot.rules.gender.text }}</template></span>
                                         </div>
                                         <ul class="popover-students">
-                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }} <span>{{ s.gender === 'M' ? '♂' : '♀' }}</span></li>
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }} <span :class="s.gender === 'M' ? 'gender-m' : 'gender-f'">{{ s.gender === 'M' ? '♂' : '♀' }}</span></li>
                                         </ul>
                                     </template>
                                     <template v-else-if="popover.slot?.bookedStudents?.length">
@@ -972,7 +974,7 @@
                                             <span class="popover-range">{{ popover.slot.rules?.age?.text }} · {{ popover.slot.rules?.level?.text }}<template v-if="popover.slot.rules?.gender?.text"> · {{ popover.slot.rules.gender.text }}</template></span>
                                         </div>
                                         <ul class="popover-students">
-                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }} <span>{{ s.gender === 'M' ? '♂' : '♀' }}</span></li>
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }} <span :class="s.gender === 'M' ? 'gender-m' : 'gender-f'">{{ s.gender === 'M' ? '♂' : '♀' }}</span></li>
                                         </ul>
                                     </template>
                                 </div>
@@ -1268,12 +1270,12 @@
                                             <span class="popover-range">{{ popover.slot.ageRange.min }}-{{ popover.slot.ageRange.max }}y · L{{ popover.slot.levelRange.min }}-{{ popover.slot.levelRange.max }}</span>
                                         </div>
                                         <ul class="popover-students">
-                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ s.name }} <span>{{ s.gender === 'M' ? '♂' : '♀' }} {{ s.age }}y · L{{ s.level }}</span></li>
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ s.name }} <span><span :class="s.gender === 'M' ? 'gender-m' : 'gender-f'">{{ s.gender === 'M' ? '♂' : '♀' }}</span> {{ s.age }}y · L{{ s.level }}</span></li>
                                         </ul>
                                         <div v-if="popover.slot.cancelledStudents?.length" class="popover-cancelled">
                                             <div class="popover-cancelled-label">Cancelled:</div>
                                             <ul class="popover-students cancelled">
-                                                <li v-for="s in popover.slot.cancelledStudents" :key="s.id">{{ s.name }} <span>{{ s.gender === 'M' ? '♂' : '♀' }} {{ s.age }}y · L{{ s.level }}</span></li>
+                                                <li v-for="s in popover.slot.cancelledStudents" :key="s.id">{{ s.name }} <span><span :class="s.gender === 'M' ? 'gender-m' : 'gender-f'">{{ s.gender === 'M' ? '♂' : '♀' }}</span> {{ s.age }}y · L{{ s.level }}</span></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -1283,7 +1285,7 @@
                                         <div class="popover-cancelled">
                                             <div class="popover-cancelled-label">Cancelled:</div>
                                             <ul class="popover-students cancelled">
-                                                <li v-for="s in popover.slot.cancelledStudents" :key="s.id">{{ s.name }} <span>{{ s.gender === 'M' ? '♂' : '♀' }} {{ s.age }}y · L{{ s.level }}</span></li>
+                                                <li v-for="s in popover.slot.cancelledStudents" :key="s.id">{{ s.name }} <span><span :class="s.gender === 'M' ? 'gender-m' : 'gender-f'">{{ s.gender === 'M' ? '♂' : '♀' }}</span> {{ s.age }}y · L{{ s.level }}</span></li>
                                             </ul>
                                         </div>
                                     </div>
