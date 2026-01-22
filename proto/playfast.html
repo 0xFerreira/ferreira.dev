@@ -194,6 +194,19 @@
         .matching-rule input::-webkit-outer-spin-button,
         .matching-rule input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .matching-rule input[type=number] { -moz-appearance: textfield; }
+        .toggle-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            padding: 0.375rem 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .toggle-btn:hover { border-color: var(--accent-dim); color: var(--text); }
+        .toggle-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 
         /* Calendar styles */
         .calendar-panel {
@@ -296,6 +309,8 @@
         .slot.club-partial { background: var(--slot-joinable); }
         .slot.club-partial .slot-names, .slot.club-partial .slot-count { color: var(--text); }
         .slot-names { font-size: 0.5625rem; line-height: 1.25; color: var(--text-muted); }
+        .slot.has-cancelled { box-shadow: inset 0 -2px 0 #f59e0b; }
+        .cancelled-indicator { color: #f59e0b; margin-left: 2px; }
 
         /* Slot popover */
         .slot-popover-backdrop {
@@ -329,6 +344,9 @@
         .popover-actions { display: flex; gap: 0.5rem; }
         .popover-actions .btn-action { flex: 1; }
         .popover-students li.you { color: var(--accent); font-weight: 500; }
+        .popover-cancelled { margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+        .popover-cancelled-label { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        .popover-students.cancelled li { color: var(--text-muted); text-decoration: line-through; opacity: 0.7; }
         .popover-no-credits { text-align: center; }
         .popover-no-credits span { display: block; font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.375rem; }
         .btn-action.disabled { opacity: 0.5; cursor: not-allowed; }
@@ -412,58 +430,6 @@
         .billing-table-footer { color: var(--text); font-weight: 600; border-top: 1px solid var(--border); margin-top: 0.25rem; }
         .billing-table-footer span:nth-child(n+2) { font-family: 'DM Mono', monospace; text-align: right; }
         .billing-empty { color: var(--text-muted); font-size: 0.875rem; text-align: center; padding: 2rem; }
-        .prediction-panel {
-            margin-top: 1.5rem;
-            background: var(--surface);
-            border: 1px dashed var(--accent);
-            border-radius: 8px;
-            padding: 1rem 1.25rem;
-        }
-        .prediction-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .prediction-header h3 {
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .prediction-badge {
-            font-size: 0.6875rem;
-            font-family: 'DM Mono', monospace;
-            color: var(--accent);
-            background: var(--accent-dim);
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-        }
-        .prediction-table { display: flex; flex-direction: column; gap: 0.375rem; }
-        .prediction-table-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8125rem;
-            color: var(--text);
-        }
-        .prediction-table-row span:last-child { font-family: 'DM Mono', monospace; }
-        .prediction-table-row.deduction { color: var(--text-muted); }
-        .prediction-table-row.deduction span:last-child { color: #f87171; }
-        .prediction-total {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 0.75rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid var(--border);
-            font-size: 1rem;
-            font-weight: 600;
-        }
-        .prediction-total span:last-child {
-            font-family: 'DM Mono', monospace;
-            font-size: 1.125rem;
-            color: var(--accent);
-        }
         .deduction-row { color: var(--text-muted); }
         .deduction-row span:last-child { color: #f87171; }
         .net-row span:last-child { color: var(--accent); }
@@ -474,12 +440,14 @@
         .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .admin-table { display: flex; flex-direction: column; }
         .admin-table-header, .admin-table-row, .admin-table-footer { display: grid; grid-template-columns: 1fr 80px 100px 100px; gap: 0.5rem; padding: 0.5rem 0; font-size: 0.8125rem; }
+        .students-table .admin-table-header, .students-table .admin-table-row, .students-table .admin-table-footer { grid-template-columns: 1fr 70px 70px 100px 100px 100px; }
         .admin-table-header { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.6875rem; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
         .admin-table-header span:nth-child(n+2) { text-align: right; }
         .admin-table-row { color: var(--text); border-bottom: 1px solid var(--border); }
         .admin-table-row span:nth-child(n+2) { font-family: 'DM Mono', monospace; text-align: right; }
         .admin-table-footer { color: var(--text); font-weight: 600; border-top: 1px solid var(--border); margin-top: 0.25rem; }
         .admin-table-footer span:nth-child(n+2) { font-family: 'DM Mono', monospace; text-align: right; }
+        .admin-table-footer span:last-child { color: var(--accent); }
 
         .config-row { display: flex; align-items: center; justify-content: space-between; }
         .config-row label { font-size: 0.875rem; color: var(--text); }
@@ -528,7 +496,7 @@
         .adjust-buttons button:hover { color: var(--text); border-color: var(--accent); }
         .config-input span { color: var(--text-muted); font-size: 0.875rem; }
 
-        .revenue-panel { border-color: var(--accent); }
+        .revenue-panel { }
         .revenue-grid { display: flex; flex-direction: column; gap: 0.75rem; }
         .revenue-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
         .revenue-item:last-child { border-bottom: none; }
@@ -560,10 +528,12 @@
         .payout-table-row { color: var(--text); border-bottom: 1px solid var(--border); }
         .payout-table-row span:nth-child(n+3) { font-family: 'DM Mono', monospace; text-align: right; }
         .payout-table-row .deduction { color: var(--text-muted); }
+        .payout-table-row .positive { color: var(--accent); }
         .payout-table-row .negative { color: #ef4444; }
         .payout-table-footer { color: var(--text); font-weight: 600; border-top: 1px solid var(--border); margin-top: 0.25rem; }
         .payout-table-footer span:nth-child(n+3) { font-family: 'DM Mono', monospace; text-align: right; }
         .payout-table-footer .deduction { color: var(--text-muted); font-weight: 500; }
+        .payout-table-footer .positive { color: var(--accent); }
         .payout-table-footer .negative { color: #ef4444; }
     </style>
 </head>
@@ -684,6 +654,55 @@
             return { weekDays, weekLabel, prevWeek: () => shiftWeek(-7), nextWeek: () => shiftWeek(7), goToday }
         }
 
+        function usePopover(onClose = () => {}) {
+            const popover = reactive({ show: false, x: 0, y: 0, slot: null, targetEl: null })
+
+            function updatePosition() {
+                if (!popover.targetEl) return
+                const rect = popover.targetEl.getBoundingClientRect()
+                popover.x = rect.left + rect.width / 2
+                popover.y = rect.bottom + 8
+            }
+
+            function open(e, slot) {
+                if (!slot.templateId) return false
+                if (popover.show && popover.slot?.key === slot.key) {
+                    close()
+                    return false
+                }
+                popover.targetEl = e.currentTarget
+                updatePosition()
+                popover.show = true
+                popover.slot = slot
+                window.addEventListener('scroll', updatePosition, true)
+                return true
+            }
+
+            function close() {
+                window.removeEventListener('scroll', updatePosition, true)
+                popover.show = false
+                popover.slot = null
+                popover.targetEl = null
+                onClose()
+            }
+
+            return { popover, open, close, updatePosition }
+        }
+
+        function getBillingPeriodLabel(period) {
+            const d = new Date()
+            if (period !== 'current') d.setMonth(d.getMonth() - 1)
+            return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        }
+
+        function getTargetMonth(period) {
+            const d = new Date()
+            if (period !== 'current') d.setMonth(d.getMonth() - 1)
+            return { month: d.getMonth(), year: d.getFullYear() }
+        }
+
+        const getStudentById = (students, id) => students.find(s => s.id === id)
+
         // ============ STUDENT VIEW COMPONENT ============
         const StudentView = {
             props: ['clubs', 'students', 'bookings', 'transactions', 'book', 'cancel'],
@@ -699,20 +718,44 @@
                     isChangingStudent.value = false
                 }
 
-                const getStudentById = (id) => students.value.find(s => s.id === id)
+                const lookupStudent = (id) => getStudentById(students.value, id)
 
-                function getSlotRanges(existingIds, club) {
-                    const existing = existingIds.map(getStudentById).filter(Boolean)
-                    if (existing.length === 0) return null
-
-                    const ages = existing.map(s => s.age)
-                    const levels = existing.map(s => s.level)
-
+                function getSlotRanges(bookedStudents, club) {
+                    if (bookedStudents.length === 0) return null
+                    const ages = bookedStudents.map(s => s.age)
+                    const levels = bookedStudents.map(s => s.level)
+                    const genders = [...new Set(bookedStudents.map(s => s.gender))]
                     return {
                         minAge: Math.max(...ages) - club.maxAgeDelta,
                         maxAge: Math.min(...ages) + club.maxAgeDelta,
                         minLevel: Math.max(...levels) - club.maxLevelDelta,
-                        maxLevel: Math.min(...levels) + club.maxLevelDelta
+                        maxLevel: Math.min(...levels) + club.maxLevelDelta,
+                        genders,
+                        requiresGender: !club.allowMixedGender ? genders[0] : null
+                    }
+                }
+
+                function getSlotStatus(booked, bookedStudents, student, club, capacity) {
+                    if (booked.includes(student.id))
+                        return { status: 'booked', info: 'Booked' }
+                    if (club.minAge && student.age < club.minAge)
+                        return { status: 'mismatch', rules: { age: { text: `${club.minAge}+ only`, ok: false }, level: { text: '', ok: true }, gender: { text: '', ok: true } } }
+                    if (booked.length >= capacity)
+                        return { status: 'full' }
+                    if (booked.length === 0)
+                        return { status: 'open' }
+
+                    const ranges = getSlotRanges(bookedStudents, club)
+                    const ageOk = student.age >= ranges.minAge && student.age <= ranges.maxAge
+                    const levelOk = student.level >= ranges.minLevel && student.level <= ranges.maxLevel
+                    const genderOk = club.allowMixedGender || ranges.genders.includes(student.gender)
+                    return {
+                        status: (ageOk && levelOk && genderOk) ? 'joinable' : 'mismatch',
+                        rules: {
+                            age: { text: `${ranges.minAge}-${ranges.maxAge}y`, ok: ageOk },
+                            level: { text: `L${ranges.minLevel}-${ranges.maxLevel}`, ok: levelOk },
+                            gender: { text: ranges.requiresGender ? (ranges.requiresGender === 'M' ? '♂ only' : '♀ only') : '', ok: genderOk }
+                        }
                     }
                 }
 
@@ -730,68 +773,26 @@
                         slots: weekDays.value.map(day => {
                             const template = TEMPLATE_INDEX.get(`${day.dayOfWeek}-${hour}`)
                             const isPast = day.date < today || (day.date === today && hour <= currentHour)
-                            if (!template) return { key: `${day.date}-${hour}`, templateId: null, status: 'unavailable', isToday: day.isToday, isPast }
+                            const base = { key: `${day.date}-${hour}`, isToday: day.isToday, isPast }
 
-                            if (club.blockedSlots.includes(template.id)) {
-                                return { key: `${day.date}-${hour}`, templateId: null, status: 'unavailable', isToday: day.isToday, isPast }
-                            }
+                            if (!template || club.blockedSlots.includes(template.id))
+                                return { ...base, templateId: null, status: 'unavailable' }
 
                             const booking = bookings.value.find(b => b.clubId === club.id && b.templateId === template.id && b.date === day.date)
                             const booked = booking?.students ?? []
-                            const bookedStudents = booked.map(getStudentById).filter(Boolean)
+                            const bookedStudents = booked.map(lookupStudent).filter(Boolean)
+                            const { status, info = '', rules = null } = getSlotStatus(booked, bookedStudents, student, club, template.capacity)
 
-                            let status, info = '', rules = null
-                            const belowMinAge = club.minAge && student.age < club.minAge
-                            if (booked.includes(student.id)) { status = 'booked'; info = 'Booked' }
-                            else if (belowMinAge) { status = 'mismatch'; rules = { age: { text: `${club.minAge}+ only`, ok: false }, level: { text: '', ok: true } } }
-                            else if (booked.length >= template.capacity) { status = 'full' }
-                            else if (booked.length === 0) { status = 'open' }
-                            else {
-                                const ranges = getSlotRanges(booked, club)
-                                const ageOk = student.age >= ranges.minAge && student.age <= ranges.maxAge
-                                const levelOk = student.level >= ranges.minLevel && student.level <= ranges.maxLevel
-                                rules = {
-                                    age: { text: `${ranges.minAge}-${ranges.maxAge}y`, ok: ageOk },
-                                    level: { text: `L${ranges.minLevel}-${ranges.maxLevel}`, ok: levelOk }
-                                }
-                                status = (ageOk && levelOk) ? 'joinable' : 'mismatch'
-                            }
-
-                            const left = template.capacity - booked.length
-                            return { key: `${day.date}-${hour}`, templateId: template.id, date: day.date, capacity: template.capacity, count: booked.length, left, status, info, rules, bookedStudents, isToday: day.isToday, isPast }
+                            return { ...base, templateId: template.id, date: day.date, capacity: template.capacity, count: booked.length, left: template.capacity - booked.length, status, info, rules, bookedStudents }
                         })
                     }))
                 })
 
-                // Popover state
-                const popover = reactive({ show: false, x: 0, y: 0, slot: null, targetEl: null })
-
-                function updatePopoverPosition() {
-                    if (!popover.targetEl) return
-                    const rect = popover.targetEl.getBoundingClientRect()
-                    popover.x = rect.left + rect.width / 2
-                    popover.y = rect.bottom + 8
-                }
+                const { popover, open: openPopover, close: closePopover } = usePopover()
 
                 function selectSlot(e, slot) {
-                    if (!slot.templateId) return
                     if (slot.isPast && !slot.bookedStudents?.length) return
-                    if (popover.show && popover.slot?.key === slot.key) {
-                        closePopover()
-                        return
-                    }
-                    popover.targetEl = e.currentTarget
-                    updatePopoverPosition()
-                    popover.show = true
-                    popover.slot = slot
-                    window.addEventListener('scroll', updatePopoverPosition, true)
-                }
-
-                function closePopover() {
-                    window.removeEventListener('scroll', updatePopoverPosition, true)
-                    popover.show = false
-                    popover.slot = null
-                    popover.targetEl = null
+                    openPopover(e, slot)
                 }
 
                 function bookSlot() {
@@ -810,8 +811,10 @@
                     closePopover()
                 }
 
-                // Format name as "First L."
-                const shortName = (s) => `${s.name.split(' ')[0]} ${s.name.split(' ').pop()[0]}.`
+                const shortName = (s) => {
+                    const parts = s.name.split(' ')
+                    return `${parts[0]} ${parts.at(-1)[0]}.`
+                }
 
                 const currentPlan = computed(() => selectedStudent.value ? PLANS[selectedStudent.value.id] : null)
                 const currentTransactions = computed(() => {
@@ -838,6 +841,7 @@
                             <div v-for="s in students" :key="s.id" class="card" :class="{ selected: selectedStudent?.id === s.id }" @click="selectStudent(s)">
                                 <div class="title">{{ s.name }}</div>
                                 <div class="meta">
+                                    <span>{{ s.gender === 'M' ? '♂' : '♀' }}</span>
                                     <span>{{ s.age }}y</span>
                                     <span>L{{ s.level }}</span>
                                     <span :class="s.credits === 0 ? 'danger' : 'accent'">{{ s.credits }} cr</span>
@@ -847,7 +851,7 @@
                         <div v-else class="collapsed-selection">
                             <div class="selected-info">
                                 <span class="selected-name">{{ selectedStudent.name }}</span>
-                                <span class="selected-meta">{{ selectedStudent.age }}y · L{{ selectedStudent.level }} · {{ selectedStudent.credits }} cr</span>
+                                <span class="selected-meta">{{ selectedStudent.gender === 'M' ? '♂' : '♀' }} · {{ selectedStudent.age }}y · L{{ selectedStudent.level }} · {{ selectedStudent.credits }} cr</span>
                             </div>
                             <button class="btn-change" @click="isChangingStudent = true">Change</button>
                         </div>
@@ -923,6 +927,7 @@
                                             <template v-if="slot.rules">
                                                 <div class="slot-rule" :class="{ mismatch: !slot.rules.age.ok }">{{ slot.rules.age.text }}</div>
                                                 <div class="slot-rule" :class="{ mismatch: !slot.rules.level.ok }">{{ slot.rules.level.text }}</div>
+                                                <div v-if="slot.rules.gender?.text" class="slot-rule" :class="{ mismatch: !slot.rules.gender.ok }">{{ slot.rules.gender.text }}</div>
                                             </template>
                                             <!-- Count (corner) -->
                                             <div v-if="slot.status === 'booked'" class="slot-count">{{ slot.count }}/{{ slot.capacity }}</div>
@@ -955,19 +960,19 @@
                                     <template v-else-if="popover.slot?.status === 'full' || popover.slot?.status === 'mismatch'">
                                         <div class="popover-header">
                                             <strong>{{ popover.slot.status === 'full' ? 'Full' : 'No match' }}</strong>
-                                            <span class="popover-range">{{ popover.slot.rules?.age?.text }} · {{ popover.slot.rules?.level?.text }}</span>
+                                            <span class="popover-range">{{ popover.slot.rules?.age?.text }} · {{ popover.slot.rules?.level?.text }}<template v-if="popover.slot.rules?.gender?.text"> · {{ popover.slot.rules.gender.text }}</template></span>
                                         </div>
                                         <ul class="popover-students">
-                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }}</li>
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }} <span>{{ s.gender === 'M' ? '♂' : '♀' }}</span></li>
                                         </ul>
                                     </template>
                                     <template v-else-if="popover.slot?.bookedStudents?.length">
                                         <div class="popover-header">
                                             <strong>{{ popover.slot.left }} left</strong>
-                                            <span class="popover-range">{{ popover.slot.rules?.age?.text }} · {{ popover.slot.rules?.level?.text }}</span>
+                                            <span class="popover-range">{{ popover.slot.rules?.age?.text }} · {{ popover.slot.rules?.level?.text }}<template v-if="popover.slot.rules?.gender?.text"> · {{ popover.slot.rules.gender.text }}</template></span>
                                         </div>
                                         <ul class="popover-students">
-                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }}</li>
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }} <span>{{ s.gender === 'M' ? '♂' : '♀' }}</span></li>
                                         </ul>
                                     </template>
                                 </div>
@@ -1005,6 +1010,22 @@
                     isChangingClub.value = false
                 }
 
+                function getClubSlotStatus(booked, capacity) {
+                    if (booked.length >= capacity) return 'club-full'
+                    if (booked.length > 0) return 'club-partial'
+                    return 'open'
+                }
+
+                function getRanges(bookedStudents) {
+                    if (bookedStudents.length === 0) return { ageRange: null, levelRange: null }
+                    const ages = bookedStudents.map(s => s.age)
+                    const levels = bookedStudents.map(s => s.level)
+                    return {
+                        ageRange: { min: Math.min(...ages), max: Math.max(...ages) },
+                        levelRange: { min: Math.min(...levels), max: Math.max(...levels) }
+                    }
+                }
+
                 const calendarRows = computed(() => {
                     const club = selectedClub.value
                     if (!club) return []
@@ -1018,71 +1039,50 @@
                         slots: weekDays.value.map(day => {
                             const template = TEMPLATE_INDEX.get(`${day.dayOfWeek}-${hour}`)
                             const isPast = day.date < today || (day.date === today && hour <= currentHour)
-                            if (!template) return { key: `${day.date}-${hour}`, templateId: null, status: 'unavailable', isToday: day.isToday, isPast }
+                            const base = { key: `${day.date}-${hour}`, isToday: day.isToday, isPast }
 
-                            const isBlocked = club.blockedSlots.includes(template.id)
-                            if (isBlocked) return { key: `${day.date}-${hour}`, templateId: template.id, status: 'blocked', count: 0, capacity: template.capacity, isToday: day.isToday, isPast }
+                            if (!template)
+                                return { ...base, templateId: null, status: 'unavailable' }
+                            if (club.blockedSlots.includes(template.id))
+                                return { ...base, templateId: template.id, status: 'blocked', count: 0, capacity: template.capacity }
 
                             const booking = bookings.value.find(b => b.clubId === club.id && b.templateId === template.id && b.date === day.date)
                             const booked = booking?.students ?? []
-                            const bookedStudents = booked.map(id => students.value.find(s => s.id === id)).filter(Boolean)
-                            const names = bookedStudents.map(s => s.name.split(' ')[0])
+                            const bookedStudents = booked.map(id => getStudentById(students.value, id)).filter(Boolean)
+                            const cancelledIds = booking?.cancelled?.map(c => c.studentId) ?? []
+                            const cancelledStudents = cancelledIds.map(id => getStudentById(students.value, id)).filter(Boolean)
 
-                            let status = 'open', ageRange = null, levelRange = null
-                            if (booked.length >= template.capacity) status = 'club-full'
-                            else if (booked.length > 0) status = 'club-partial'
-
-                            if (bookedStudents.length > 0) {
-                                const ages = bookedStudents.map(s => s.age)
-                                const levels = bookedStudents.map(s => s.level)
-                                ageRange = { min: Math.min(...ages), max: Math.max(...ages) }
-                                levelRange = { min: Math.min(...levels), max: Math.max(...levels) }
+                            return {
+                                ...base,
+                                templateId: template.id,
+                                capacity: template.capacity,
+                                count: booked.length,
+                                status: getClubSlotStatus(booked, template.capacity),
+                                names: bookedStudents.map(s => s.name.split(' ')[0]),
+                                bookedStudents,
+                                cancelledStudents,
+                                ...getRanges(bookedStudents)
                             }
-
-                            return { key: `${day.date}-${hour}`, templateId: template.id, capacity: template.capacity, count: booked.length, status, names, bookedStudents, ageRange, levelRange, isToday: day.isToday, isPast }
                         })
                     }))
                 })
 
-                // Popover state
-                const popover = reactive({ show: false, x: 0, y: 0, slot: null, confirmBlock: false, targetEl: null })
-
-                function updatePopoverPosition() {
-                    if (!popover.targetEl) return
-                    const rect = popover.targetEl.getBoundingClientRect()
-                    popover.x = rect.left + rect.width / 2
-                    popover.y = rect.bottom + 8
-                }
+                const confirmBlock = ref(false)
+                const { popover, open: openPopover, close } = usePopover(() => confirmBlock.value = false)
 
                 function selectSlot(e, slot) {
-                    if (!slot.templateId) return
                     if (slot.isPast && !slot.count) return
-                    if (popover.show && popover.slot?.key === slot.key) {
-                        closePopover()
-                        return
-                    }
-                    popover.targetEl = e.currentTarget
-                    updatePopoverPosition()
-                    popover.show = true
-                    popover.slot = slot
-                    popover.confirmBlock = false
-                    window.addEventListener('scroll', updatePopoverPosition, true)
+                    if (openPopover(e, slot)) confirmBlock.value = false
                 }
 
                 function closePopover() {
-                    window.removeEventListener('scroll', updatePopoverPosition, true)
-                    popover.show = false
-                    popover.slot = null
-                    popover.confirmBlock = false
-                    popover.targetEl = null
+                    confirmBlock.value = false
+                    close()
                 }
 
                 function requestBlock() {
-                    if (popover.slot?.count > 0) {
-                        popover.confirmBlock = true
-                    } else {
-                        blockSlot()
-                    }
+                    if (popover.slot?.count > 0) return confirmBlock.value = true
+                    blockSlot()
                 }
 
                 function blockSlot() {
@@ -1112,39 +1112,30 @@
 
                 // Billing
                 const billingPeriod = ref('current')
+                const billingPeriodLabel = computed(() => getBillingPeriodLabel(billingPeriod.value))
+
                 const billingData = computed(() => {
                     const club = selectedClub.value
                     if (!club) return { students: [], totalBookings: 0, totalCredits: 0 }
 
-                    const now = new Date()
-                    const currentMonth = now.getMonth()
-                    const currentYear = now.getFullYear()
-                    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
-                    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+                    const { month, year } = getTargetMonth(billingPeriod.value)
 
-                    const targetMonth = billingPeriod.value === 'current' ? currentMonth : lastMonth
-                    const targetYear = billingPeriod.value === 'current' ? currentYear : lastMonthYear
-
-                    // Filter bookings for this club and target month
                     const monthBookings = bookings.value.filter(b => {
                         if (b.clubId !== club.id) return false
                         const d = new Date(b.date)
-                        return d.getMonth() === targetMonth && d.getFullYear() === targetYear
+                        return d.getMonth() === month && d.getFullYear() === year
                     })
 
-                    // Aggregate by student
                     const studentMap = new Map()
                     for (const booking of monthBookings) {
                         for (const studentId of booking.students) {
-                            const count = studentMap.get(studentId) || 0
-                            studentMap.set(studentId, count + 1)
+                            studentMap.set(studentId, (studentMap.get(studentId) || 0) + 1)
                         }
                     }
 
-                    // Build sorted list
                     const studentList = Array.from(studentMap.entries())
                         .map(([id, count]) => {
-                            const student = students.value.find(s => s.id === id)
+                            const student = getStudentById(students.value, id)
                             const plan = PLANS[id]
                             const planCredits = plan?.creditsPerMonth ?? 0
                             const planPrice = plan?.price ?? 0
@@ -1156,41 +1147,16 @@
 
                     const totalBookings = studentList.reduce((sum, s) => sum + s.bookings, 0)
                     const grossRevenue = studentList.reduce((sum, s) => sum + s.revenue, 0)
-
-                    // Get platform fee from parent (passed via props won't work here, so we'll use a default)
-                    // For now, hardcode 15% or we need to pass it through
                     const platformFeePct = 15
                     const platformCut = (platformFeePct / 100) * grossRevenue
-
-                    // Get club subscription
                     const clubPlan = CLUB_PLANS.find(p => p.id === club.planId)
                     const subscription = clubPlan?.price ?? 0
                     const netRevenue = grossRevenue - platformCut - subscription
 
-                    // Revenue prediction (linear projection)
-                    let prediction = null
-                    if (billingPeriod.value === 'current' && grossRevenue > 0) {
-                        const now = new Date()
-                        const daysElapsed = now.getDate()
-                        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-                        const dailyAvgGross = grossRevenue / daysElapsed
-                        const projectedGross = dailyAvgGross * daysInMonth
-                        const projectedPlatformCut = (platformFeePct / 100) * projectedGross
-                        const projectedNet = projectedGross - projectedPlatformCut - subscription
-                        prediction = { daysElapsed, daysInMonth, gross: projectedGross, platformCut: projectedPlatformCut, subscription, net: projectedNet }
-                    }
-
-                    return { students: studentList, totalBookings, totalCredits: totalBookings, grossRevenue, platformCut, subscription, netRevenue, prediction }
+                    return { students: studentList, totalBookings, totalCredits: totalBookings, grossRevenue, platformCut, subscription, netRevenue }
                 })
 
-                const billingPeriodLabel = computed(() => {
-                    const now = new Date()
-                    const month = billingPeriod.value === 'current' ? now.getMonth() : (now.getMonth() === 0 ? 11 : now.getMonth() - 1)
-                    const year = billingPeriod.value === 'current' ? now.getFullYear() : (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear())
-                    return new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-                })
-
-                return { clubs, selectedClub, isChangingClub, selectClub, getClubPlan, weekDays, weekLabel, prevWeek, nextWeek, goToday, calendarRows, popover, selectSlot, closePopover, requestBlock, blockSlot, unblockSlot, billingPeriod, billingData, billingPeriodLabel }
+                return { clubs, selectedClub, isChangingClub, selectClub, getClubPlan, weekDays, weekLabel, prevWeek, nextWeek, goToday, calendarRows, popover, confirmBlock, selectSlot, closePopover, requestBlock, blockSlot, unblockSlot, billingPeriod, billingData, billingPeriodLabel }
             },
             template: `
                 <div class="layout">
@@ -1232,6 +1198,12 @@
                                     <label>Max level delta</label>
                                     <input type="number" v-model.number="selectedClub.maxLevelDelta" min="0" max="10">
                                 </div>
+                                <div class="matching-rule">
+                                    <label>Mixed gender</label>
+                                    <button class="toggle-btn" :class="{ active: selectedClub.allowMixedGender }" @click="selectedClub.allowMixedGender = !selectedClub.allowMixedGender">
+                                        {{ selectedClub.allowMixedGender ? 'Allowed' : 'Same only' }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -1248,6 +1220,7 @@
                                     <div class="legend-item"><div class="legend-dot" style="background: var(--slot-joinable);"></div><span>Partial</span></div>
                                     <div class="legend-item"><div class="legend-dot booked"></div><span>Full</span></div>
                                     <div class="legend-item"><div class="legend-dot" style="background: var(--bg); border: 1px solid var(--border);"></div><span>Blocked</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: var(--slot-empty); box-shadow: inset 0 -2px 0 #f59e0b;"></div><span>Has cancels</span></div>
                                 </div>
                             </div>
                             <div class="calendar-grid">
@@ -1258,11 +1231,14 @@
                                 </div>
                                 <template v-for="row in calendarRows" :key="row.hour">
                                     <div class="time-label">{{ row.hour }}:00</div>
-                                    <div v-for="slot in row.slots" :key="slot.key" class="slot" :class="[slot.status, { today: slot.isToday, past: slot.isPast, 'past-empty': slot.isPast && !slot.count }]" @click="selectSlot($event, slot)">
+                                    <div v-for="slot in row.slots" :key="slot.key" class="slot" :class="[slot.status, { today: slot.isToday, past: slot.isPast, 'past-empty': slot.isPast && !slot.count, 'has-cancelled': slot.cancelledStudents?.length }]" @click="selectSlot($event, slot)">
                                         <template v-if="slot.templateId">
                                             <div v-if="slot.status === 'blocked'" class="slot-info">Blocked</div>
                                             <div v-else-if="slot.names?.length" class="slot-names">{{ slot.names.join(', ') }}</div>
-                                            <div v-if="slot.status !== 'blocked'" class="slot-count">{{ slot.count }}/{{ slot.capacity }}</div>
+                                            <div v-if="slot.status !== 'blocked'" class="slot-count">
+                                                {{ slot.count }}/{{ slot.capacity }}
+                                                <span v-if="slot.cancelledStudents?.length" class="cancelled-indicator">-{{ slot.cancelledStudents.length }}</span>
+                                            </div>
                                         </template>
                                     </div>
                                 </template>
@@ -1271,13 +1247,13 @@
                             <!-- Slot Popover -->
                             <div v-if="popover.show" class="slot-popover-backdrop" @click="closePopover"></div>
                             <div v-if="popover.show" class="slot-popover" :style="{ left: popover.x + 'px', top: popover.y + 'px' }">
-                                <template v-if="popover.confirmBlock">
+                                <template v-if="confirmBlock">
                                     <div class="slot-popover-warning">
                                         <strong>Refund warning</strong>
                                         <p>Blocking this slot will refund {{ popover.slot.count }} credit{{ popover.slot.count > 1 ? 's' : '' }} to the booked students.</p>
                                     </div>
                                     <div class="popover-actions">
-                                        <button class="btn-action" @click="popover.confirmBlock = false">Cancel</button>
+                                        <button class="btn-action" @click="confirmBlock = false">Cancel</button>
                                         <button class="btn-action danger" @click="blockSlot">Confirm</button>
                                     </div>
                                 </template>
@@ -1292,8 +1268,24 @@
                                             <span class="popover-range">{{ popover.slot.ageRange.min }}-{{ popover.slot.ageRange.max }}y · L{{ popover.slot.levelRange.min }}-{{ popover.slot.levelRange.max }}</span>
                                         </div>
                                         <ul class="popover-students">
-                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ s.name }} <span>{{ s.age }}y · L{{ s.level }}</span></li>
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ s.name }} <span>{{ s.gender === 'M' ? '♂' : '♀' }} {{ s.age }}y · L{{ s.level }}</span></li>
                                         </ul>
+                                        <div v-if="popover.slot.cancelledStudents?.length" class="popover-cancelled">
+                                            <div class="popover-cancelled-label">Cancelled:</div>
+                                            <ul class="popover-students cancelled">
+                                                <li v-for="s in popover.slot.cancelledStudents" :key="s.id">{{ s.name }} <span>{{ s.gender === 'M' ? '♂' : '♀' }} {{ s.age }}y · L{{ s.level }}</span></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div v-else-if="popover.slot?.cancelledStudents?.length" class="slot-popover-info">
+                                        <strong>Empty slot</strong>
+                                        <span>All bookings cancelled</span>
+                                        <div class="popover-cancelled">
+                                            <div class="popover-cancelled-label">Cancelled:</div>
+                                            <ul class="popover-students cancelled">
+                                                <li v-for="s in popover.slot.cancelledStudents" :key="s.id">{{ s.name }} <span>{{ s.gender === 'M' ? '♂' : '♀' }} {{ s.age }}y · L{{ s.level }}</span></li>
+                                            </ul>
+                                        </div>
                                     </div>
                                     <div v-else class="slot-popover-info">
                                         <strong>Empty slot</strong>
@@ -1364,31 +1356,6 @@
                                 </div>
                             </div>
                             <div v-else class="billing-empty">No bookings for this period</div>
-                            </div>
-                            <div v-if="billingData.prediction" class="prediction-panel">
-                                <div class="prediction-header">
-                                    <h3>Monthly Projection</h3>
-                                    <span class="prediction-badge">{{ billingData.prediction.daysElapsed }}/{{ billingData.prediction.daysInMonth }} days</span>
-                                </div>
-                                <div class="prediction-table">
-                                    <div class="prediction-table-row">
-                                        <span>Projected gross</span>
-                                        <span>R$ {{ billingData.prediction.gross.toFixed(2) }}</span>
-                                    </div>
-                                    <div class="prediction-table-row deduction">
-                                        <span>Platform fee (15%)</span>
-                                        <span>-R$ {{ billingData.prediction.platformCut.toFixed(2) }}</span>
-                                    </div>
-                                    <div class="prediction-table-row deduction">
-                                        <span>Subscription</span>
-                                        <span>-R$ {{ billingData.prediction.subscription.toFixed(2) }}</span>
-                                    </div>
-                                </div>
-                                <div class="prediction-total">
-                                    <span>Projected payout</span>
-                                    <span>R$ {{ billingData.prediction.net.toFixed(2) }}</span>
-                                </div>
-                            </div>
                         </div>
                     </template>
                 </div>
@@ -1404,59 +1371,66 @@
 
                 const adminPage = ref('platform')
                 const billingPeriod = ref('current')
+                const billingPeriodLabel = computed(() => getBillingPeriodLabel(billingPeriod.value))
 
-                const getTargetPeriod = () => {
-                    const now = new Date()
-                    const currentMonth = now.getMonth()
-                    const currentYear = now.getFullYear()
-                    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
-                    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
-                    return {
-                        month: billingPeriod.value === 'current' ? currentMonth : lastMonth,
-                        year: billingPeriod.value === 'current' ? currentYear : lastMonthYear
-                    }
-                }
-
-                const billingPeriodLabel = computed(() => {
-                    const { month, year } = getTargetPeriod()
-                    return new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-                })
-
-                // Get active students (those with bookings in the period)
                 const activeStudentIds = computed(() => {
-                    const { month, year } = getTargetPeriod()
+                    const { month, year } = getTargetMonth(billingPeriod.value)
                     const ids = new Set()
                     for (const booking of bookings.value) {
                         const d = new Date(booking.date)
                         if (d.getMonth() === month && d.getFullYear() === year) {
-                            for (const studentId of booking.students) {
-                                ids.add(studentId)
-                            }
+                            booking.students.forEach(id => ids.add(id))
                         }
                     }
                     return ids
                 })
 
-                // Students by plan (only active in period)
+                // Calculate used credits per student in the period
+                const studentCreditsUsed = computed(() => {
+                    const { month, year } = getTargetMonth(billingPeriod.value)
+                    const used = new Map()
+                    for (const booking of bookings.value) {
+                        const d = new Date(booking.date)
+                        if (d.getMonth() !== month || d.getFullYear() !== year) continue
+                        for (const studentId of booking.students) {
+                            used.set(studentId, (used.get(studentId) || 0) + 1)
+                        }
+                    }
+                    return used
+                })
+
+                // Students by plan - revenue = fee on used credits + unused credits value
                 const studentsByPlan = computed(() => {
                     const planCounts = {}
                     for (const student of students.value) {
-                        if (!activeStudentIds.value.has(student.id)) continue
                         const plan = PLANS[student.id]
-                        const planName = plan?.name ?? 'Unknown'
+                        if (!plan) continue
+                        const planName = plan.name
+                        const pricePerCredit = plan.price / plan.creditsPerMonth
+                        const used = studentCreditsUsed.value.get(student.id) || 0
+                        const unused = Math.max(0, plan.creditsPerMonth - used)
+                        const feeRevenue = (platformFee.value / 100) * used * pricePerCredit
+                        const unusedRevenue = unused * pricePerCredit
+
                         if (!planCounts[planName]) {
-                            planCounts[planName] = { name: planName, count: 0, price: plan?.price ?? 0, revenue: 0 }
+                            planCounts[planName] = { name: planName, count: 0, price: plan.price, usedCredits: 0, totalCredits: 0, feeRevenue: 0, unusedRevenue: 0, revenue: 0 }
                         }
                         planCounts[planName].count++
-                        planCounts[planName].revenue += plan?.price ?? 0
+                        planCounts[planName].usedCredits += used
+                        planCounts[planName].totalCredits += plan.creditsPerMonth
+                        planCounts[planName].feeRevenue += feeRevenue
+                        planCounts[planName].unusedRevenue += unusedRevenue
+                        planCounts[planName].revenue += feeRevenue + unusedRevenue
                     }
                     return Object.values(planCounts).sort((a, b) => b.revenue - a.revenue)
                 })
 
-                const totalStudents = computed(() => activeStudentIds.value.size)
+                const totalStudents = computed(() => studentsByPlan.value.reduce((sum, p) => sum + p.count, 0))
+                const totalUsedCredits = computed(() => studentsByPlan.value.reduce((sum, p) => sum + p.usedCredits, 0))
+                const totalCredits = computed(() => studentsByPlan.value.reduce((sum, p) => sum + p.totalCredits, 0))
                 const totalStudentRevenue = computed(() => studentsByPlan.value.reduce((sum, p) => sum + p.revenue, 0))
 
-                // Clubs by plan (all clubs, subscriptions are fixed)
+                // Clubs by plan (subscriptions are fixed)
                 const clubsByPlan = computed(() => {
                     const planCounts = {}
                     for (const club of clubs.value) {
@@ -1474,26 +1448,25 @@
                 const totalClubs = computed(() => clubs.value.length)
                 const totalClubRevenue = computed(() => clubsByPlan.value.reduce((sum, p) => sum + p.revenue, 0))
 
-                // Platform revenue (fee from student payments)
-                const platformRevenue = computed(() => (platformFee.value / 100) * totalStudentRevenue.value)
+                // Platform revenue totals
+                const platformFeeRevenue = computed(() => studentsByPlan.value.reduce((sum, p) => sum + p.feeRevenue, 0))
+                const unusedCreditsValue = computed(() => studentsByPlan.value.reduce((sum, p) => sum + p.unusedRevenue, 0))
+                const platformRevenue = computed(() => platformFeeRevenue.value + unusedCreditsValue.value)
                 const totalRevenue = computed(() => totalClubRevenue.value + platformRevenue.value)
 
-                // Club payouts - revenue per club after platform cut minus subscription
                 const clubPayouts = computed(() => {
-                    const { month, year } = getTargetPeriod()
+                    const { month, year } = getTargetMonth(billingPeriod.value)
 
                     return clubs.value.map(club => {
                         const clubPlan = CLUB_PLANS.find(p => p.id === club.planId)
                         const subscription = clubPlan?.price ?? 0
 
-                        // Get bookings for this club in the period
                         const clubBookings = bookings.value.filter(b => {
                             if (b.clubId !== club.id) return false
                             const d = new Date(b.date)
                             return d.getMonth() === month && d.getFullYear() === year
                         })
 
-                        // Calculate gross revenue from student credits
                         let grossRevenue = 0
                         for (const booking of clubBookings) {
                             for (const studentId of booking.students) {
@@ -1505,19 +1478,16 @@
                         }
 
                         const platformCut = (platformFee.value / 100) * grossRevenue
-                        const netRevenue = grossRevenue - platformCut
-                        const payout = netRevenue - subscription
-                        const totalBookings = clubBookings.reduce((sum, b) => sum + b.students.length, 0)
+                        const payout = grossRevenue - platformCut - subscription
 
                         return {
                             id: club.id,
                             name: club.name,
                             plan: clubPlan?.name ?? '-',
                             subscription,
-                            totalBookings,
+                            totalBookings: clubBookings.reduce((sum, b) => sum + b.students.length, 0),
                             grossRevenue,
                             platformCut,
-                            netRevenue,
                             payout
                         }
                     }).sort((a, b) => b.payout - a.payout)
@@ -1539,7 +1509,7 @@
                     }
                 }
 
-                return { adminPage, billingPeriod, billingPeriodLabel, studentsByPlan, totalStudents, totalStudentRevenue, clubsByPlan, totalClubs, totalClubRevenue, platformFee, platformRevenue, totalRevenue, clubPayouts, totalPayout, totalGrossRevenue, totalPlatformCut, totalSubscriptions, updateFee, clubPlans, adjustAllPrices }
+                return { adminPage, billingPeriod, billingPeriodLabel, studentsByPlan, totalStudents, totalUsedCredits, totalCredits, totalStudentRevenue, clubsByPlan, totalClubs, totalClubRevenue, platformFee, platformFeeRevenue, unusedCreditsValue, platformRevenue, totalRevenue, clubPayouts, totalPayout, totalGrossRevenue, totalPlatformCut, totalSubscriptions, updateFee, clubPlans, adjustAllPrices }
             },
             template: `
                 <div class="layout">
@@ -1596,31 +1566,37 @@
                     <template v-if="adminPage === 'platform'">
                         <div class="admin-grid">
                             <div class="panel">
-                                <h2 class="panel-title">Students</h2>
-                                <div class="admin-table">
+                                <h2 class="panel-title">Students Revenue Stream</h2>
+                                <div class="admin-table students-table">
                                     <div class="admin-table-header">
                                         <span>Plan</span>
                                         <span>Students</span>
-                                        <span>Price</span>
+                                        <span>Credits</span>
+                                        <span>Fee ({{ platformFee }}%)</span>
+                                        <span>Unused</span>
                                         <span>Revenue</span>
                                     </div>
                                     <div v-for="p in studentsByPlan" :key="p.name" class="admin-table-row">
                                         <span>{{ p.name }}</span>
                                         <span>{{ p.count }}</span>
-                                        <span>R$ {{ p.price.toFixed(2) }}</span>
+                                        <span>{{ p.usedCredits }}/{{ p.totalCredits }}</span>
+                                        <span>R$ {{ p.feeRevenue.toFixed(2) }}</span>
+                                        <span>R$ {{ p.unusedRevenue.toFixed(2) }}</span>
                                         <span>R$ {{ p.revenue.toFixed(2) }}</span>
                                     </div>
                                     <div class="admin-table-footer">
                                         <span>Total</span>
                                         <span>{{ totalStudents }}</span>
-                                        <span></span>
+                                        <span>{{ totalUsedCredits }}/{{ totalCredits }}</span>
+                                        <span>R$ {{ platformFeeRevenue.toFixed(2) }}</span>
+                                        <span>R$ {{ unusedCreditsValue.toFixed(2) }}</span>
                                         <span>R$ {{ totalStudentRevenue.toFixed(2) }}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="panel">
-                                <h2 class="panel-title">Clubs</h2>
+                                <h2 class="panel-title">Clubs Revenue Stream</h2>
                                 <div class="admin-table">
                                     <div class="admin-table-header">
                                         <span>Plan</span>
@@ -1645,15 +1621,19 @@
                         </div>
 
                         <div class="panel revenue-panel">
-                            <h2 class="panel-title">Revenue Summary</h2>
+                            <h2 class="panel-title">Combined Revenue Stream</h2>
                             <div class="revenue-grid">
                                 <div class="revenue-item">
                                     <span class="revenue-label">Club subscriptions</span>
                                     <span class="revenue-value">R$ {{ totalClubRevenue.toFixed(2) }}</span>
                                 </div>
                                 <div class="revenue-item">
-                                    <span class="revenue-label">Platform fee ({{ platformFee }}% of R$ {{ totalStudentRevenue.toFixed(2) }})</span>
-                                    <span class="revenue-value">R$ {{ platformRevenue.toFixed(2) }}</span>
+                                    <span class="revenue-label">Platform fee ({{ platformFee }}%)</span>
+                                    <span class="revenue-value">R$ {{ platformFeeRevenue.toFixed(2) }}</span>
+                                </div>
+                                <div class="revenue-item">
+                                    <span class="revenue-label">Unused credits</span>
+                                    <span class="revenue-value">R$ {{ unusedCreditsValue.toFixed(2) }}</span>
                                 </div>
                                 <div class="revenue-item total">
                                     <span class="revenue-label">Total monthly revenue</span>
@@ -1684,7 +1664,7 @@
                                     <span>R$ {{ c.grossRevenue.toFixed(2) }}</span>
                                     <span class="deduction">-R$ {{ c.platformCut.toFixed(2) }}</span>
                                     <span class="deduction">-R$ {{ c.subscription.toFixed(2) }}</span>
-                                    <span :class="{ negative: c.payout < 0 }">R$ {{ c.payout.toFixed(2) }}</span>
+                                    <span :class="{ positive: c.payout >= 0, negative: c.payout < 0 }">R$ {{ c.payout.toFixed(2) }}</span>
                                 </div>
                                 <div class="payout-table-footer">
                                     <span>Total</span>
@@ -1693,7 +1673,7 @@
                                     <span>R$ {{ totalGrossRevenue.toFixed(2) }}</span>
                                     <span class="deduction">-R$ {{ totalPlatformCut.toFixed(2) }}</span>
                                     <span class="deduction">-R$ {{ totalSubscriptions.toFixed(2) }}</span>
-                                    <span :class="{ negative: totalPayout < 0 }">R$ {{ totalPayout.toFixed(2) }}</span>
+                                    <span :class="{ positive: totalPayout >= 0, negative: totalPayout < 0 }">R$ {{ totalPayout.toFixed(2) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -1713,25 +1693,25 @@
                 ]
 
                 const clubs = reactive([
-                    { id: 1, name: 'Tennis Park', location: 'São Paulo - Pinheiros', minAge: 12, maxAgeDelta: 5, maxLevelDelta: 1, planId: 2, clientCount: 78, blockedSlots: [] },
-                    { id: 2, name: 'Clube Harmonia', location: 'São Paulo - Moema', minAge: 21, maxAgeDelta: 10, maxLevelDelta: 2, planId: 3, clientCount: 142, blockedSlots: [] },
-                    { id: 3, name: 'Arena Saúde', location: 'São Paulo - Vila Olímpia', minAge: 12, maxAgeDelta: 3, maxLevelDelta: 1, planId: 1, clientCount: 35, blockedSlots: [] },
+                    { id: 1, name: 'Tennis Park', location: 'São Paulo - Pinheiros', minAge: 12, maxAgeDelta: 5, maxLevelDelta: 1, allowMixedGender: true, planId: 2, clientCount: 78, blockedSlots: [] },
+                    { id: 2, name: 'Clube Harmonia', location: 'São Paulo - Moema', minAge: 21, maxAgeDelta: 10, maxLevelDelta: 2, allowMixedGender: true, planId: 3, clientCount: 142, blockedSlots: [] },
+                    { id: 3, name: 'Arena Saúde', location: 'São Paulo - Vila Olímpia', minAge: 12, maxAgeDelta: 3, maxLevelDelta: 1, allowMixedGender: false, planId: 1, clientCount: 35, blockedSlots: [] },
                 ])
 
                 // Students start with full credits from their plan
                 const students = reactive([
-                    { id: 1, name: 'Lucas Silva', age: 28, level: 5, credits: 8 },      // Pro - adult intermediate
-                    { id: 2, name: 'Maria Santos', age: 34, level: 3, credits: 4 },     // Basic - adult beginner
-                    { id: 3, name: 'Pedro Oliveira', age: 12, level: 2, credits: 8 },   // Junior - kid beginner
-                    { id: 4, name: 'Ana Costa', age: 45, level: 6, credits: 8 },        // Pro - adult advanced
-                    { id: 5, name: 'João Pereira', age: 9, level: 1, credits: 8 },      // Junior - kid starter
-                    { id: 6, name: 'Carlos Mendes', age: 30, level: 5, credits: 8 },    // Pro - adult intermediate
-                    { id: 7, name: 'Beatriz Lima', age: 26, level: 4, credits: 4 },     // Basic - adult intermediate
-                    { id: 8, name: 'Thiago Santos', age: 14, level: 3, credits: 8 },    // Junior - teen beginner
-                    { id: 9, name: 'Fernanda Rocha', age: 38, level: 5, credits: 8 },   // Pro - adult intermediate
-                    { id: 10, name: 'Rafael Costa', age: 42, level: 6, credits: 4 },    // Basic - adult advanced
-                    { id: 11, name: 'Laura Souza', age: 11, level: 2, credits: 8 },     // Junior - kid beginner
-                    { id: 12, name: 'Gustavo Alves', age: 52, level: 4, credits: 8 },   // Pro - senior intermediate
+                    { id: 1, name: 'Lucas Silva', age: 28, level: 5, gender: 'M', credits: 8 },      // Pro - adult intermediate
+                    { id: 2, name: 'Maria Santos', age: 34, level: 3, gender: 'F', credits: 4 },     // Basic - adult beginner
+                    { id: 3, name: 'Pedro Oliveira', age: 12, level: 2, gender: 'M', credits: 8 },   // Junior - kid beginner
+                    { id: 4, name: 'Ana Costa', age: 45, level: 6, gender: 'F', credits: 8 },        // Pro - adult advanced
+                    { id: 5, name: 'João Pereira', age: 9, level: 1, gender: 'M', credits: 8 },      // Junior - kid starter
+                    { id: 6, name: 'Carlos Mendes', age: 30, level: 5, gender: 'M', credits: 8 },    // Pro - adult intermediate
+                    { id: 7, name: 'Beatriz Lima', age: 26, level: 4, gender: 'F', credits: 4 },     // Basic - adult intermediate
+                    { id: 8, name: 'Thiago Santos', age: 14, level: 3, gender: 'M', credits: 8 },    // Junior - teen beginner
+                    { id: 9, name: 'Fernanda Rocha', age: 38, level: 5, gender: 'F', credits: 8 },   // Pro - adult intermediate
+                    { id: 10, name: 'Rafael Costa', age: 42, level: 6, gender: 'M', credits: 4 },    // Basic - adult advanced
+                    { id: 11, name: 'Laura Souza', age: 11, level: 2, gender: 'F', credits: 8 },     // Junior - kid beginner
+                    { id: 12, name: 'Gustavo Alves', age: 52, level: 4, gender: 'M', credits: 8 },   // Pro - senior intermediate
                 ])
 
                 const bookings = reactive([])
@@ -1759,6 +1739,7 @@
                         if (!existing) continue
                         if (Math.abs(existing.age - candidate.age) > club.maxAgeDelta) return { ok: false, reason: 'age' }
                         if (Math.abs(existing.level - candidate.level) > club.maxLevelDelta) return { ok: false, reason: 'level' }
+                        if (!club.allowMixedGender && existing.gender !== candidate.gender) return { ok: false, reason: 'gender' }
                     }
                     return { ok: true }
                 }
@@ -1812,6 +1793,8 @@
                     if (idx === -1) return { ok: false, reason: 'Student not in booking' }
 
                     booking.students.splice(idx, 1)
+                    if (!booking.cancelled) booking.cancelled = []
+                    booking.cancelled.push({ studentId, cancelledAt: new Date().toISOString() })
                     student.credits++
                     transactions[studentId].unshift({ date: new Date().toISOString(), type: 'refund', amount: 1, description: `Cancelled ${slotDesc(club, template)}` })
 
