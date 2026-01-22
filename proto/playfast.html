@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playfast</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0f0d;
+            --surface: #141a17;
+            --surface-hover: #1a211d;
+            --border: #2a332e;
+            --text: #e8ece9;
+            --text-muted: #7a857f;
+            --accent: #4ade80;
+            --accent-dim: #22543d;
+            --slot-empty: #111a17;
+            --slot-joinable: #234d3a;
+            --slot-booked: #4ade80;
+            --slot-full: #252a28;
+            --slot-mismatch: #3d3525;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header-left h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: -0.02em;
+        }
+
+        .header-left p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .view-tabs {
+            display: flex;
+            gap: 0.25rem;
+            background: var(--surface);
+            padding: 0.25rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .view-tab {
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .view-tab:hover { color: var(--text); background: var(--surface-hover); }
+        .view-tab.active { color: var(--bg); background: var(--accent); }
+
+        .empty-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-muted);
+        }
+
+        .empty-view h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .layout { display: flex; flex-direction: column; gap: 1.5rem; }
+        .controls-bar { display: flex; gap: 1.5rem; align-items: flex-start; }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+        }
+
+        .panel-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .card-list { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+        .card {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            min-width: 140px;
+        }
+
+        .card:hover { background: var(--surface-hover); border-color: var(--accent-dim); }
+        .card.selected { background: var(--accent-dim); border-color: var(--accent); }
+        .card .title { font-weight: 600; font-size: 0.875rem; margin-bottom: 0.25rem; }
+        .card .meta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.75rem; }
+        .card .meta span { font-family: 'DM Mono', monospace; }
+        .card.selected .meta { color: var(--text); }
+        .card .meta .accent { color: var(--accent); }
+        .card .meta .danger { color: #ef4444; }
+        .card.selected .meta .accent, .card.selected .meta .danger { color: var(--text); }
+
+        .collapsed-selection {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .collapsed-selection .selected-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .collapsed-selection .selected-name {
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+
+        .collapsed-selection .selected-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'DM Mono', monospace;
+        }
+
+        .btn-change {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-change:hover {
+            color: var(--text);
+            border-color: var(--accent-dim);
+        }
+
+        .matching-rules { display: flex; gap: 1.5rem; }
+        .matching-rule { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--text-muted); }
+        .matching-rule input[type="number"] {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-family: 'DM Mono', monospace;
+            font-size: 0.875rem;
+            padding: 0.375rem 0.5rem;
+            width: 54px;
+        }
+        .matching-rule input:focus { outline: none; border-color: var(--accent); }
+        .matching-rule input::-webkit-outer-spin-button,
+        .matching-rule input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .matching-rule input[type=number] { -moz-appearance: textfield; }
+
+        /* Calendar styles */
+        .calendar-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .calendar-nav { display: flex; align-items: center; gap: 1rem; }
+        .calendar-nav button {
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s ease;
+        }
+        .calendar-nav button:hover { border-color: var(--accent); color: var(--accent); }
+        .calendar-nav .today-btn { width: auto; padding: 0 0.75rem; font-size: 0.75rem; font-weight: 500; margin-right: 0.5rem; }
+        .calendar-nav .week-label { font-weight: 600; font-size: 1rem; margin-left: 0.5rem; }
+
+        .legend { display: flex; gap: 1.25rem; font-size: 0.75rem; color: var(--text-muted); }
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+        .legend-dot.open { background: var(--slot-empty); }
+        .legend-dot.joinable { background: var(--slot-joinable); border-left: 2px solid var(--accent); }
+        .legend-dot.booked { background: var(--slot-booked); }
+        .legend-dot.mismatch { background: var(--slot-mismatch); }
+        .legend-dot.full { background: var(--slot-full); opacity: 0.6; }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 60px repeat(7, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .calendar-corner { background: var(--surface); padding: 0.75rem; }
+        .day-header { background: var(--surface); padding: 0.75rem; text-align: center; }
+        .day-header .day-name { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+        .day-header .day-num { font-size: 1.125rem; font-weight: 600; margin-top: 0.25rem; }
+        .day-header.today .day-num { color: var(--accent); }
+        .day-header.today { background: rgba(74, 222, 128, 0.025); }
+        .slot.today::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(74, 222, 128, 0.025);
+            pointer-events: none;
+        }
+
+        .time-label {
+            background: var(--surface);
+            padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex; align-items: flex-start; justify-content: flex-end;
+        }
+
+        .slot {
+            background: var(--slot-empty);
+            padding: 0.25rem;
+            min-height: 40px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+        .slot:hover { filter: brightness(1.15); }
+        .slot.readonly { cursor: default; }
+        .slot.past { opacity: 0.4; cursor: pointer; }
+        .slot.past:hover { filter: none; }
+        .slot.past-empty { cursor: default; }
+        .slot.joinable { background: var(--slot-joinable); border-left: 2px solid var(--accent); animation: glow 2s ease-in-out infinite; }
+        .slot.joinable.past { animation: none; border-left-color: var(--border); }
+        @keyframes glow {
+            0%, 100% { box-shadow: inset 0 0 0 rgba(74, 222, 128, 0); }
+            50% { box-shadow: inset 0 0 12px rgba(74, 222, 128, 0.3); }
+        }
+        .slot.occupied { background: var(--slot-joinable); }
+        .slot.booked { background: var(--slot-booked); }
+        .slot.full { background: var(--slot-full); opacity: 0.6; }
+        .slot.full .slot-rule, .slot.full .slot-count { color: var(--text); }
+        .slot.mismatch { background: var(--slot-mismatch); }
+        .slot.mismatch .slot-count { color: var(--text); }
+        .slot.blocked { background: var(--bg); cursor: pointer; }
+        .slot.blocked .slot-info { color: var(--text-muted); font-size: 0.625rem; }
+
+        /* Club view specific states */
+        .slot.club-full { background: var(--slot-booked); }
+        .slot.club-full .slot-names { color: var(--bg); font-weight: 500; }
+        .slot.club-full .slot-count { color: var(--bg); }
+        .slot.club-partial { background: var(--slot-joinable); }
+        .slot.club-partial .slot-names, .slot.club-partial .slot-count { color: var(--text); }
+        .slot-names { font-size: 0.5625rem; line-height: 1.25; color: var(--text-muted); }
+
+        /* Slot popover */
+        .slot-popover-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+        }
+        .slot-popover {
+            position: fixed;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            min-width: 240px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        .slot-popover-info { font-size: 0.8125rem; margin-bottom: 0.75rem; }
+        .slot-popover-info strong { color: var(--text); }
+        .slot-popover-info > span { color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 0.25rem; }
+        .popover-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
+        .popover-range { font-size: 0.6875rem; color: var(--accent); font-family: 'DM Mono', monospace; }
+        .popover-students { list-style: none; margin: 0; padding: 0; }
+        .popover-students li { font-size: 0.75rem; color: var(--text); padding: 0.25rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .popover-students li:last-child { border-bottom: none; }
+        .popover-students li span { color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 0.6875rem; }
+        .slot-popover-warning { margin-bottom: 0.75rem; }
+        .slot-popover-warning strong { color: #f59e0b; font-size: 0.8125rem; }
+        .slot-popover-warning p { color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem; line-height: 1.4; }
+        .popover-actions { display: flex; gap: 0.5rem; }
+        .popover-actions .btn-action { flex: 1; }
+        .popover-students li.you { color: var(--accent); font-weight: 500; }
+        .popover-no-credits { text-align: center; }
+        .popover-no-credits span { display: block; font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.375rem; }
+        .btn-action.disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-action {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--surface-hover);
+            color: var(--text);
+            transition: all 0.15s ease;
+        }
+        .btn-action:hover { border-color: var(--accent); }
+        .btn-action.danger { color: #f87171; border-color: #f87171; }
+        .btn-action.danger:hover { background: rgba(248, 113, 113, 0.1); }
+
+        .slot-info { font-size: 0.6875rem; line-height: 1.3; }
+        .slot-rule { font-size: 0.625rem; line-height: 1.2; color: var(--text-muted); }
+        .slot-rule.mismatch { color: #d97706; font-weight: 500; }
+        .slot.booked .slot-info { color: var(--bg); font-weight: 600; }
+        .slot-count { position: absolute; bottom: 4px; right: 6px; font-family: 'DM Mono', monospace; font-size: 0.625rem; color: var(--text-muted); }
+        .slot-status-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.6875rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .slot.booked .slot-status-label { color: var(--bg); }
+        .slot.booked .slot-count { color: var(--bg); }
+        .slot.joinable .slot-rule { color: var(--accent); opacity: 0.8; }
+
+        .placeholder { display: flex; align-items: center; justify-content: center; height: 300px; color: var(--text-muted); }
+
+        /* Billing */
+        .billing-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+        .billing-content { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; }
+        .billing-summary { display: flex; flex-direction: column; gap: 0.875rem; }
+        .billing-row { display: flex; justify-content: space-between; font-size: 0.875rem; }
+        .billing-row .label { color: var(--text-muted); }
+        .billing-row .value { font-family: 'DM Mono', monospace; color: var(--text); }
+        .billing-row .value.plan-name { color: var(--accent); font-family: 'DM Sans', sans-serif; font-weight: 600; }
+        .billing-row .value.warning { color: #ef4444; }
+        .credits-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 0.25rem; }
+        .credits-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s ease; }
+        .credits-bar-fill.low { background: #f59e0b; }
+        .credits-bar-fill.empty { background: #ef4444; }
+        .transactions { border-left: 1px solid var(--border); padding-left: 1.5rem; }
+        .transactions h3 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem; }
+        .transaction-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 140px; overflow-y: auto; }
+        .transaction { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8125rem; }
+        .transaction-date { font-family: 'DM Mono', monospace; color: var(--text-muted); font-size: 0.6875rem; min-width: 140px; }
+        .transaction-amount { font-family: 'DM Mono', monospace; min-width: 45px; text-align: right; }
+        .transaction-amount.credit { color: var(--accent); }
+        .transaction-amount.used { color: var(--text-muted); }
+        .transaction-amount.refund { color: #60a5fa; }
+        .transaction-desc { color: var(--text-muted); }
+
+        /* Club billing */
+        .billing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .billing-filter { display: flex; gap: 0.25rem; background: var(--bg); padding: 0.25rem; border-radius: 6px; }
+        .billing-filter button {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .billing-filter button:hover { color: var(--text); }
+        .billing-filter button.active { background: var(--surface-hover); color: var(--text); }
+        .billing-summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+        .billing-period { font-weight: 600; color: var(--text); }
+        .billing-totals { font-size: 0.8125rem; color: var(--text-muted); }
+        .billing-table { display: flex; flex-direction: column; }
+        .billing-table-header, .billing-table-row, .billing-table-footer { display: grid; grid-template-columns: 1fr 70px 70px 110px 100px; gap: 0.5rem; padding: 0.5rem 0; font-size: 0.8125rem; }
+        .billing-table-header { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.6875rem; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+        .billing-table-header span:nth-child(n+2) { text-align: right; }
+        .billing-table-row { color: var(--text); border-bottom: 1px solid var(--border); }
+        .billing-table-row span:nth-child(n+2) { font-family: 'DM Mono', monospace; text-align: right; }
+        .billing-table-footer { color: var(--text); font-weight: 600; border-top: 1px solid var(--border); margin-top: 0.25rem; }
+        .billing-table-footer span:nth-child(n+2) { font-family: 'DM Mono', monospace; text-align: right; }
+        .billing-empty { color: var(--text-muted); font-size: 0.875rem; text-align: center; padding: 2rem; }
+        .prediction-panel {
+            margin-top: 1.5rem;
+            background: var(--surface);
+            border: 1px dashed var(--accent);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .prediction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .prediction-header h3 {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .prediction-badge {
+            font-size: 0.6875rem;
+            font-family: 'DM Mono', monospace;
+            color: var(--accent);
+            background: var(--accent-dim);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        .prediction-table { display: flex; flex-direction: column; gap: 0.375rem; }
+        .prediction-table-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8125rem;
+            color: var(--text);
+        }
+        .prediction-table-row span:last-child { font-family: 'DM Mono', monospace; }
+        .prediction-table-row.deduction { color: var(--text-muted); }
+        .prediction-table-row.deduction span:last-child { color: #f87171; }
+        .prediction-total {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .prediction-total span:last-child {
+            font-family: 'DM Mono', monospace;
+            font-size: 1.125rem;
+            color: var(--accent);
+        }
+        .deduction-row { color: var(--text-muted); }
+        .deduction-row span:last-child { color: #f87171; }
+        .net-row span:last-child { color: var(--accent); }
+
+        /* Admin view */
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .admin-period { font-size: 1.125rem; font-weight: 600; color: var(--text); }
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .admin-table { display: flex; flex-direction: column; }
+        .admin-table-header, .admin-table-row, .admin-table-footer { display: grid; grid-template-columns: 1fr 80px 100px 100px; gap: 0.5rem; padding: 0.5rem 0; font-size: 0.8125rem; }
+        .admin-table-header { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.6875rem; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+        .admin-table-header span:nth-child(n+2) { text-align: right; }
+        .admin-table-row { color: var(--text); border-bottom: 1px solid var(--border); }
+        .admin-table-row span:nth-child(n+2) { font-family: 'DM Mono', monospace; text-align: right; }
+        .admin-table-footer { color: var(--text); font-weight: 600; border-top: 1px solid var(--border); margin-top: 0.25rem; }
+        .admin-table-footer span:nth-child(n+2) { font-family: 'DM Mono', monospace; text-align: right; }
+
+        .config-row { display: flex; align-items: center; justify-content: space-between; }
+        .config-row label { font-size: 0.875rem; color: var(--text); }
+        .config-input { display: flex; align-items: center; gap: 0.5rem; }
+        .config-input input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-family: 'DM Mono', monospace;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            width: 80px;
+            text-align: right;
+        }
+        .config-input input:focus { outline: none; border-color: var(--accent); }
+        .config-input input::-webkit-outer-spin-button,
+        .config-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .config-input input[type=number] { -moz-appearance: textfield; }
+
+        .config-table { display: flex; flex-direction: column; }
+        .config-table-header, .config-table-row { display: grid; grid-template-columns: 1fr 100px 150px; gap: 1rem; padding: 0.5rem 0; align-items: center; }
+        .config-table-header { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.6875rem; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+        .config-table-header span:nth-child(2) { text-align: right; }
+        .config-table-row { color: var(--text); border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+        .config-table-row:last-child { border-bottom: none; }
+        .config-table-row span:nth-child(2) { text-align: right; font-family: 'DM Mono', monospace; }
+        .config-table-row .config-input { justify-content: flex-end; }
+        .config-table-row .config-input input { width: 100px; }
+
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .panel-header .panel-title { margin-bottom: 0; }
+        .adjust-buttons { display: flex; gap: 0.5rem; }
+        .adjust-buttons button {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-muted);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .adjust-buttons button:hover { color: var(--text); border-color: var(--accent); }
+        .config-input span { color: var(--text-muted); font-size: 0.875rem; }
+
+        .revenue-panel { border-color: var(--accent); }
+        .revenue-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+        .revenue-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+        .revenue-item:last-child { border-bottom: none; }
+        .revenue-item.total { border-top: 1px solid var(--border); padding-top: 0.75rem; margin-top: 0.25rem; }
+        .revenue-label { font-size: 0.875rem; color: var(--text-muted); }
+        .revenue-value { font-family: 'DM Mono', monospace; font-size: 1rem; color: var(--text); }
+        .revenue-item.total .revenue-label { font-weight: 600; color: var(--text); }
+        .revenue-item.total .revenue-value { font-size: 1.25rem; color: var(--accent); font-weight: 600; }
+
+        .admin-subnav { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .admin-subnav button {
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .admin-subnav button:hover { color: var(--text); border-color: var(--accent-dim); }
+        .admin-subnav button.active { color: var(--text); background: var(--surface-hover); border-color: var(--accent); }
+
+        .payout-table { display: flex; flex-direction: column; }
+        .payout-table-header, .payout-table-row, .payout-table-footer { display: grid; grid-template-columns: 1fr 80px 70px 100px 100px 100px 100px; gap: 0.5rem; padding: 0.625rem 0; font-size: 0.8125rem; }
+        .payout-table-header { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.6875rem; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+        .payout-table-header span:nth-child(n+3) { text-align: right; }
+        .payout-table-row { color: var(--text); border-bottom: 1px solid var(--border); }
+        .payout-table-row span:nth-child(n+3) { font-family: 'DM Mono', monospace; text-align: right; }
+        .payout-table-row .deduction { color: var(--text-muted); }
+        .payout-table-row .negative { color: #ef4444; }
+        .payout-table-footer { color: var(--text); font-weight: 600; border-top: 1px solid var(--border); margin-top: 0.25rem; }
+        .payout-table-footer span:nth-child(n+3) { font-family: 'DM Mono', monospace; text-align: right; }
+        .payout-table-footer .deduction { color: var(--text-muted); font-weight: 500; }
+        .payout-table-footer .negative { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <header>
+                <div class="header-left">
+                    <h1>{{ viewTitle }}</h1>
+                    <p>{{ viewSubtitle }}</p>
+                </div>
+                <div class="view-tabs">
+                    <button
+                        v-for="v in views" :key="v.id"
+                        class="view-tab"
+                        :class="{ active: currentView === v.id }"
+                        @click="currentView = v.id"
+                    >{{ v.label }}</button>
+                </div>
+            </header>
+
+            <student-view v-if="currentView === 'student'" :clubs="clubs" :students="students" :bookings="bookings" :transactions="transactions" :book="book" :cancel="cancel"></student-view>
+            <club-view v-else-if="currentView === 'club'" :clubs="clubs" :students="students" :bookings="bookings" :cancel="cancel"></club-view>
+
+            <admin-view v-else :clubs="clubs" :students="students" :bookings="bookings" :club-plans="clubPlans" :platform-fee="platformFee" @update-fee="platformFee = $event"></admin-view>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, toRefs } = Vue
+
+        // ============ SHARED CONSTANTS ============
+        const HOURS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+        const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+        const SLOT_TEMPLATES = (() => {
+            const templates = []
+            let id = 1
+            for (let day = 0; day <= 6; day++) {
+                for (let hour = 6; hour < 22; hour++) {
+                    templates.push({ id: `t${id++}`, dayOfWeek: day, startHour: hour, capacity: 4 })
+                }
+            }
+            return templates
+        })()
+
+        const TEMPLATE_INDEX = new Map(SLOT_TEMPLATES.map(t => [`${t.dayOfWeek}-${t.startHour}`, t]))
+
+        const CLUB_PLANS = reactive([
+            { id: 1, name: 'Starter', price: 219.90, maxClients: 50 },
+            { id: 2, name: 'Growth', price: 309.90, maxClients: 100 },
+            { id: 3, name: 'Pro', price: 449.90, maxClients: 250 },
+            { id: 4, name: 'Enterprise', price: 649.90, maxClients: 500 },
+        ])
+
+        // Student plans - keyed by student ID
+        const PLANS = {
+            1: { name: 'Pro', creditsPerMonth: 8, price: 299, nextBilling: '2025-02-01' },
+            2: { name: 'Basic', creditsPerMonth: 4, price: 149, nextBilling: '2025-02-05' },
+            3: { name: 'Junior', creditsPerMonth: 8, price: 199, nextBilling: '2025-02-01' },
+            4: { name: 'Pro', creditsPerMonth: 8, price: 299, nextBilling: '2025-02-10' },
+            5: { name: 'Junior', creditsPerMonth: 8, price: 199, nextBilling: '2025-02-01' },
+            6: { name: 'Pro', creditsPerMonth: 8, price: 299, nextBilling: '2025-02-03' },
+            7: { name: 'Basic', creditsPerMonth: 4, price: 149, nextBilling: '2025-02-01' },
+            8: { name: 'Junior', creditsPerMonth: 8, price: 199, nextBilling: '2025-02-15' },
+            9: { name: 'Pro', creditsPerMonth: 8, price: 299, nextBilling: '2025-02-01' },
+            10: { name: 'Basic', creditsPerMonth: 4, price: 149, nextBilling: '2025-02-08' },
+            11: { name: 'Junior', creditsPerMonth: 8, price: 199, nextBilling: '2025-02-01' },
+            12: { name: 'Pro', creditsPerMonth: 8, price: 299, nextBilling: '2025-02-12' },
+        }
+
+        // Transactions will be populated by book/cancel - initialized per student in setup
+
+        // ============ SHARED HELPERS ============
+        function getWeekStart(date) {
+            const d = new Date(date)
+            const day = d.getDay()
+            d.setDate(d.getDate() - day + (day === 0 ? -6 : 1))
+            d.setHours(0, 0, 0, 0)
+            return d
+        }
+
+        function formatDate(date) {
+            const y = date.getFullYear()
+            const m = String(date.getMonth() + 1).padStart(2, '0')
+            const d = String(date.getDate()).padStart(2, '0')
+            return `${y}-${m}-${d}`
+        }
+
+        function useWeekNavigation() {
+            const currentWeekStart = ref(getWeekStart(new Date()))
+
+            const weekDays = computed(() => {
+                const today = formatDate(new Date())
+                return Array.from({ length: 7 }, (_, i) => {
+                    const d = new Date(currentWeekStart.value)
+                    d.setDate(d.getDate() + i)
+                    const date = formatDate(d)
+                    return { date, name: DAY_NAMES[d.getDay()], num: d.getDate(), dayOfWeek: d.getDay(), isToday: date === today }
+                })
+            })
+
+            const weekLabel = computed(() => {
+                const weekEnd = new Date(currentWeekStart.value)
+                weekEnd.setDate(weekEnd.getDate() + 6)
+                const fmt = { month: 'short', day: 'numeric' }
+                return `${currentWeekStart.value.toLocaleDateString('en-US', fmt)} - ${weekEnd.toLocaleDateString('en-US', { ...fmt, year: 'numeric' })}`
+            })
+
+            const shiftWeek = (delta) => {
+                const d = new Date(currentWeekStart.value)
+                d.setDate(d.getDate() + delta)
+                currentWeekStart.value = d
+            }
+
+            const goToday = () => { currentWeekStart.value = getWeekStart(new Date()) }
+
+            return { weekDays, weekLabel, prevWeek: () => shiftWeek(-7), nextWeek: () => shiftWeek(7), goToday }
+        }
+
+        // ============ STUDENT VIEW COMPONENT ============
+        const StudentView = {
+            props: ['clubs', 'students', 'bookings', 'transactions', 'book', 'cancel'],
+            setup(props) {
+                const { clubs, students, bookings, transactions } = toRefs(props)
+                const selectedClub = ref(null)
+                const selectedStudent = ref(null)
+                const isChangingStudent = ref(false)
+                const { weekDays, weekLabel, prevWeek, nextWeek, goToday } = useWeekNavigation()
+
+                function selectStudent(student) {
+                    selectedStudent.value = student
+                    isChangingStudent.value = false
+                }
+
+                const getStudentById = (id) => students.value.find(s => s.id === id)
+
+                function getSlotRanges(existingIds, club) {
+                    const existing = existingIds.map(getStudentById).filter(Boolean)
+                    if (existing.length === 0) return null
+
+                    const ages = existing.map(s => s.age)
+                    const levels = existing.map(s => s.level)
+
+                    return {
+                        minAge: Math.max(...ages) - club.maxAgeDelta,
+                        maxAge: Math.min(...ages) + club.maxAgeDelta,
+                        minLevel: Math.max(...levels) - club.maxLevelDelta,
+                        maxLevel: Math.min(...levels) + club.maxLevelDelta
+                    }
+                }
+
+                const calendarRows = computed(() => {
+                    const club = selectedClub.value
+                    const student = selectedStudent.value
+                    if (!club || !student) return []
+
+                    const now = new Date()
+                    const today = formatDate(now)
+                    const currentHour = now.getHours()
+
+                    return HOURS.map(hour => ({
+                        hour,
+                        slots: weekDays.value.map(day => {
+                            const template = TEMPLATE_INDEX.get(`${day.dayOfWeek}-${hour}`)
+                            const isPast = day.date < today || (day.date === today && hour <= currentHour)
+                            if (!template) return { key: `${day.date}-${hour}`, templateId: null, status: 'unavailable', isToday: day.isToday, isPast }
+
+                            if (club.blockedSlots.includes(template.id)) {
+                                return { key: `${day.date}-${hour}`, templateId: null, status: 'unavailable', isToday: day.isToday, isPast }
+                            }
+
+                            const booking = bookings.value.find(b => b.clubId === club.id && b.templateId === template.id && b.date === day.date)
+                            const booked = booking?.students ?? []
+                            const bookedStudents = booked.map(getStudentById).filter(Boolean)
+
+                            let status, info = '', rules = null
+                            const belowMinAge = club.minAge && student.age < club.minAge
+                            if (booked.includes(student.id)) { status = 'booked'; info = 'Booked' }
+                            else if (belowMinAge) { status = 'mismatch'; rules = { age: { text: `${club.minAge}+ only`, ok: false }, level: { text: '', ok: true } } }
+                            else if (booked.length >= template.capacity) { status = 'full' }
+                            else if (booked.length === 0) { status = 'open' }
+                            else {
+                                const ranges = getSlotRanges(booked, club)
+                                const ageOk = student.age >= ranges.minAge && student.age <= ranges.maxAge
+                                const levelOk = student.level >= ranges.minLevel && student.level <= ranges.maxLevel
+                                rules = {
+                                    age: { text: `${ranges.minAge}-${ranges.maxAge}y`, ok: ageOk },
+                                    level: { text: `L${ranges.minLevel}-${ranges.maxLevel}`, ok: levelOk }
+                                }
+                                status = (ageOk && levelOk) ? 'joinable' : 'mismatch'
+                            }
+
+                            const left = template.capacity - booked.length
+                            return { key: `${day.date}-${hour}`, templateId: template.id, date: day.date, capacity: template.capacity, count: booked.length, left, status, info, rules, bookedStudents, isToday: day.isToday, isPast }
+                        })
+                    }))
+                })
+
+                // Popover state
+                const popover = reactive({ show: false, x: 0, y: 0, slot: null, targetEl: null })
+
+                function updatePopoverPosition() {
+                    if (!popover.targetEl) return
+                    const rect = popover.targetEl.getBoundingClientRect()
+                    popover.x = rect.left + rect.width / 2
+                    popover.y = rect.bottom + 8
+                }
+
+                function selectSlot(e, slot) {
+                    if (!slot.templateId) return
+                    if (slot.isPast && !slot.bookedStudents?.length) return
+                    if (popover.show && popover.slot?.key === slot.key) {
+                        closePopover()
+                        return
+                    }
+                    popover.targetEl = e.currentTarget
+                    updatePopoverPosition()
+                    popover.show = true
+                    popover.slot = slot
+                    window.addEventListener('scroll', updatePopoverPosition, true)
+                }
+
+                function closePopover() {
+                    window.removeEventListener('scroll', updatePopoverPosition, true)
+                    popover.show = false
+                    popover.slot = null
+                    popover.targetEl = null
+                }
+
+                function bookSlot() {
+                    const club = selectedClub.value, student = selectedStudent.value
+                    const slot = popover.slot
+                    if (!club || !student || !slot?.templateId) return
+                    props.book(club.id, slot.templateId, slot.date, student.id)
+                    closePopover()
+                }
+
+                function cancelSlot() {
+                    const club = selectedClub.value, student = selectedStudent.value
+                    const slot = popover.slot
+                    if (!club || !student || !slot?.templateId) return
+                    props.cancel(club.id, slot.templateId, slot.date, student.id)
+                    closePopover()
+                }
+
+                // Format name as "First L."
+                const shortName = (s) => `${s.name.split(' ')[0]} ${s.name.split(' ').pop()[0]}.`
+
+                const currentPlan = computed(() => selectedStudent.value ? PLANS[selectedStudent.value.id] : null)
+                const currentTransactions = computed(() => {
+                    const txs = selectedStudent.value ? transactions.value[selectedStudent.value.id] ?? [] : []
+                    return [...txs].sort((a, b) => new Date(b.date) - new Date(a.date))
+                })
+                const creditsPct = computed(() => selectedStudent.value && currentPlan.value ? (selectedStudent.value.credits / currentPlan.value.creditsPerMonth) * 100 : 0)
+                const creditsBarClass = computed(() => creditsPct.value === 0 ? 'empty' : creditsPct.value <= 25 ? 'low' : '')
+                const formatTxDate = (d) => {
+                    const dt = new Date(d)
+                    const date = dt.toISOString().split('T')[0]
+                    const time = dt.toTimeString().split(' ')[0]
+                    return `${date} ${time}`
+                }
+
+                return { clubs, students, selectedClub, selectedStudent, isChangingStudent, selectStudent, weekDays, weekLabel, prevWeek, nextWeek, goToday, calendarRows, popover, selectSlot, closePopover, bookSlot, cancelSlot, shortName, currentPlan, currentTransactions, creditsPct, creditsBarClass, formatTxDate }
+            },
+            template: `
+                <div class="layout">
+                    <!-- Student Selection (primary, shown first) -->
+                    <div class="panel">
+                        <h2 class="panel-title">Student</h2>
+                        <div v-if="!selectedStudent || isChangingStudent" class="card-list">
+                            <div v-for="s in students" :key="s.id" class="card" :class="{ selected: selectedStudent?.id === s.id }" @click="selectStudent(s)">
+                                <div class="title">{{ s.name }}</div>
+                                <div class="meta">
+                                    <span>{{ s.age }}y</span>
+                                    <span>L{{ s.level }}</span>
+                                    <span :class="s.credits === 0 ? 'danger' : 'accent'">{{ s.credits }} cr</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="collapsed-selection">
+                            <div class="selected-info">
+                                <span class="selected-name">{{ selectedStudent.name }}</span>
+                                <span class="selected-meta">{{ selectedStudent.age }}y · L{{ selectedStudent.level }} · {{ selectedStudent.credits }} cr</span>
+                            </div>
+                            <button class="btn-change" @click="isChangingStudent = true">Change</button>
+                        </div>
+                    </div>
+
+                    <!-- Rest of UI only shown after persona selected -->
+                    <template v-if="selectedStudent">
+                        <div class="panel">
+                            <h2 class="panel-title">Select Club</h2>
+                            <div class="card-list">
+                                <div v-for="club in clubs" :key="club.id" class="card" :class="{ selected: selectedClub?.id === club.id }" @click="selectedClub = club">
+                                    <div class="title">{{ club.name }}</div>
+                                    <div class="meta">{{ club.location }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="billing-panel">
+                            <h2 class="panel-title">Billing</h2>
+                            <div class="billing-content">
+                                <div class="billing-summary">
+                                    <div class="billing-row"><span class="label">Plan</span><span class="value plan-name">{{ currentPlan.name }}</span></div>
+                                    <div class="billing-row"><span class="label">Monthly price</span><span class="value">R$ {{ currentPlan.price }}</span></div>
+                                    <div class="billing-row"><span class="label">Credits</span><span class="value" :class="{ warning: selectedStudent.credits === 0 }">{{ selectedStudent.credits }} / {{ currentPlan.creditsPerMonth }}</span></div>
+                                    <div class="credits-bar"><div class="credits-bar-fill" :class="creditsBarClass" :style="{ width: creditsPct + '%' }"></div></div>
+                                    <div class="billing-row"><span class="label">Next billing</span><span class="value">{{ currentPlan.nextBilling }}</span></div>
+                                </div>
+                                <div class="transactions">
+                                    <h3>Recent Transactions</h3>
+                                    <div class="transaction-list">
+                                        <div v-for="(tx, i) in currentTransactions" :key="i" class="transaction">
+                                            <span class="transaction-date">{{ formatTxDate(tx.date) }}</span>
+                                            <span class="transaction-amount" :class="tx.type">{{ tx.type === 'used' ? '-' : '+' }}{{ tx.amount }}</span>
+                                            <span class="transaction-desc">{{ tx.description }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="calendar-panel">
+                            <div v-if="!selectedClub" class="placeholder">Select a club to view its calendar</div>
+                        <template v-else>
+                            <div class="calendar-header">
+                                <div class="calendar-nav">
+                                    <button @click="goToday" class="today-btn">Today</button>
+                                    <button @click="prevWeek">←</button>
+                                    <button @click="nextWeek">→</button>
+                                    <span class="week-label">{{ weekLabel }}</span>
+                                </div>
+                                <div class="legend">
+                                    <div class="legend-item"><div class="legend-dot open"></div><span>Open</span></div>
+                                    <div class="legend-item"><div class="legend-dot joinable"></div><span>Joinable</span></div>
+                                    <div class="legend-item"><div class="legend-dot booked"></div><span>Yours</span></div>
+                                    <div class="legend-item"><div class="legend-dot mismatch"></div><span>No match</span></div>
+                                    <div class="legend-item"><div class="legend-dot full"></div><span>Full</span></div>
+                                </div>
+                            </div>
+                            <div class="calendar-grid">
+                                <div class="calendar-corner"></div>
+                                <div v-for="day in weekDays" :key="day.date" class="day-header" :class="{ today: day.isToday }">
+                                    <div class="day-name">{{ day.name }}</div>
+                                    <div class="day-num">{{ day.num }}</div>
+                                </div>
+                                <template v-for="row in calendarRows" :key="row.hour">
+                                    <div class="time-label">{{ row.hour }}:00</div>
+                                    <div v-for="slot in row.slots" :key="slot.key" class="slot" :class="[slot.status, { today: slot.isToday, past: slot.isPast, 'past-empty': slot.isPast && !slot.bookedStudents?.length }]" @click="selectSlot($event, slot)">
+                                        <template v-if="slot.templateId">
+                                            <!-- Status label (centered) -->
+                                            <div v-if="slot.status === 'booked'" class="slot-status-label">Booked</div>
+                                            <div v-else-if="slot.status === 'full'" class="slot-status-label">Full</div>
+                                            <!-- Rules (for joinable/mismatch) -->
+                                            <template v-if="slot.rules">
+                                                <div class="slot-rule" :class="{ mismatch: !slot.rules.age.ok }">{{ slot.rules.age.text }}</div>
+                                                <div class="slot-rule" :class="{ mismatch: !slot.rules.level.ok }">{{ slot.rules.level.text }}</div>
+                                            </template>
+                                            <!-- Count (corner) -->
+                                            <div v-if="slot.status === 'booked'" class="slot-count">{{ slot.count }}/{{ slot.capacity }}</div>
+                                            <div v-else-if="slot.left > 0 && slot.left < slot.capacity" class="slot-count">{{ slot.left }} left</div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Slot Popover -->
+                            <div v-if="popover.show" class="slot-popover-backdrop" @click="closePopover"></div>
+                            <div v-if="popover.show" class="slot-popover" :style="{ left: popover.x + 'px', top: popover.y + 'px' }">
+                                <div class="slot-popover-info">
+                                    <template v-if="popover.slot?.status === 'booked'">
+                                        <div class="popover-header">
+                                            <strong>Your booking</strong>
+                                            <span class="popover-range" v-if="popover.slot.bookedStudents?.length > 1">{{ popover.slot.left }} left</span>
+                                        </div>
+                                        <ul v-if="popover.slot.bookedStudents?.length > 1" class="popover-students">
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id" :class="{ you: s.id === selectedStudent?.id }">
+                                                {{ s.id === selectedStudent?.id ? 'You' : shortName(s) }}
+                                            </li>
+                                        </ul>
+                                        <span v-else>Click to cancel and get refund</span>
+                                    </template>
+                                    <template v-else-if="popover.slot?.status === 'open'">
+                                        <strong>Open slot</strong>
+                                        <span>Be the first to book</span>
+                                    </template>
+                                    <template v-else-if="popover.slot?.status === 'full' || popover.slot?.status === 'mismatch'">
+                                        <div class="popover-header">
+                                            <strong>{{ popover.slot.status === 'full' ? 'Full' : 'No match' }}</strong>
+                                            <span class="popover-range">{{ popover.slot.rules?.age?.text }} · {{ popover.slot.rules?.level?.text }}</span>
+                                        </div>
+                                        <ul class="popover-students">
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }}</li>
+                                        </ul>
+                                    </template>
+                                    <template v-else-if="popover.slot?.bookedStudents?.length">
+                                        <div class="popover-header">
+                                            <strong>{{ popover.slot.left }} left</strong>
+                                            <span class="popover-range">{{ popover.slot.rules?.age?.text }} · {{ popover.slot.rules?.level?.text }}</span>
+                                        </div>
+                                        <ul class="popover-students">
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ shortName(s) }}</li>
+                                        </ul>
+                                    </template>
+                                </div>
+                                <template v-if="!popover.slot?.isPast">
+                                    <button v-if="popover.slot?.status === 'booked'" class="btn-action danger" @click="cancelSlot">Cancel booking</button>
+                                    <template v-else-if="popover.slot?.status === 'open' || popover.slot?.status === 'joinable'">
+                                        <button v-if="selectedStudent?.credits > 0" class="btn-action" @click="bookSlot">Book slot</button>
+                                        <div v-else class="popover-no-credits">
+                                            <button class="btn-action disabled" disabled>Book slot</button>
+                                            <span>No credits remaining</span>
+                                        </div>
+                                    </template>
+                                </template>
+                            </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            `
+        }
+
+        // ============ CLUB VIEW COMPONENT ============
+        const ClubView = {
+            props: ['clubs', 'students', 'bookings', 'cancel'],
+            setup(props) {
+                const { clubs, students, bookings } = toRefs(props)
+                const selectedClub = ref(null)
+                const isChangingClub = ref(false)
+                const { weekDays, weekLabel, prevWeek, nextWeek, goToday } = useWeekNavigation()
+
+                const getClubPlan = (planId) => CLUB_PLANS.find(p => p.id === planId)
+
+                function selectClub(club) {
+                    selectedClub.value = club
+                    isChangingClub.value = false
+                }
+
+                const calendarRows = computed(() => {
+                    const club = selectedClub.value
+                    if (!club) return []
+
+                    const now = new Date()
+                    const today = formatDate(now)
+                    const currentHour = now.getHours()
+
+                    return HOURS.map(hour => ({
+                        hour,
+                        slots: weekDays.value.map(day => {
+                            const template = TEMPLATE_INDEX.get(`${day.dayOfWeek}-${hour}`)
+                            const isPast = day.date < today || (day.date === today && hour <= currentHour)
+                            if (!template) return { key: `${day.date}-${hour}`, templateId: null, status: 'unavailable', isToday: day.isToday, isPast }
+
+                            const isBlocked = club.blockedSlots.includes(template.id)
+                            if (isBlocked) return { key: `${day.date}-${hour}`, templateId: template.id, status: 'blocked', count: 0, capacity: template.capacity, isToday: day.isToday, isPast }
+
+                            const booking = bookings.value.find(b => b.clubId === club.id && b.templateId === template.id && b.date === day.date)
+                            const booked = booking?.students ?? []
+                            const bookedStudents = booked.map(id => students.value.find(s => s.id === id)).filter(Boolean)
+                            const names = bookedStudents.map(s => s.name.split(' ')[0])
+
+                            let status = 'open', ageRange = null, levelRange = null
+                            if (booked.length >= template.capacity) status = 'club-full'
+                            else if (booked.length > 0) status = 'club-partial'
+
+                            if (bookedStudents.length > 0) {
+                                const ages = bookedStudents.map(s => s.age)
+                                const levels = bookedStudents.map(s => s.level)
+                                ageRange = { min: Math.min(...ages), max: Math.max(...ages) }
+                                levelRange = { min: Math.min(...levels), max: Math.max(...levels) }
+                            }
+
+                            return { key: `${day.date}-${hour}`, templateId: template.id, capacity: template.capacity, count: booked.length, status, names, bookedStudents, ageRange, levelRange, isToday: day.isToday, isPast }
+                        })
+                    }))
+                })
+
+                // Popover state
+                const popover = reactive({ show: false, x: 0, y: 0, slot: null, confirmBlock: false, targetEl: null })
+
+                function updatePopoverPosition() {
+                    if (!popover.targetEl) return
+                    const rect = popover.targetEl.getBoundingClientRect()
+                    popover.x = rect.left + rect.width / 2
+                    popover.y = rect.bottom + 8
+                }
+
+                function selectSlot(e, slot) {
+                    if (!slot.templateId) return
+                    if (slot.isPast && !slot.count) return
+                    if (popover.show && popover.slot?.key === slot.key) {
+                        closePopover()
+                        return
+                    }
+                    popover.targetEl = e.currentTarget
+                    updatePopoverPosition()
+                    popover.show = true
+                    popover.slot = slot
+                    popover.confirmBlock = false
+                    window.addEventListener('scroll', updatePopoverPosition, true)
+                }
+
+                function closePopover() {
+                    window.removeEventListener('scroll', updatePopoverPosition, true)
+                    popover.show = false
+                    popover.slot = null
+                    popover.confirmBlock = false
+                    popover.targetEl = null
+                }
+
+                function requestBlock() {
+                    if (popover.slot?.count > 0) {
+                        popover.confirmBlock = true
+                    } else {
+                        blockSlot()
+                    }
+                }
+
+                function blockSlot() {
+                    const club = selectedClub.value
+                    const slot = popover.slot
+                    if (!club || !slot?.templateId) return
+
+                    // Auto-cancel all bookings for this template
+                    bookings.value
+                        .filter(b => b.clubId === club.id && b.templateId === slot.templateId)
+                        .forEach(booking => {
+                            [...booking.students].forEach(sid => props.cancel(club.id, slot.templateId, booking.date, sid))
+                        })
+                    club.blockedSlots.push(slot.templateId)
+                    closePopover()
+                }
+
+                function unblockSlot() {
+                    const club = selectedClub.value
+                    const slot = popover.slot
+                    if (!club || !slot?.templateId) return
+
+                    const idx = club.blockedSlots.indexOf(slot.templateId)
+                    if (idx > -1) club.blockedSlots.splice(idx, 1)
+                    closePopover()
+                }
+
+                // Billing
+                const billingPeriod = ref('current')
+                const billingData = computed(() => {
+                    const club = selectedClub.value
+                    if (!club) return { students: [], totalBookings: 0, totalCredits: 0 }
+
+                    const now = new Date()
+                    const currentMonth = now.getMonth()
+                    const currentYear = now.getFullYear()
+                    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
+                    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+
+                    const targetMonth = billingPeriod.value === 'current' ? currentMonth : lastMonth
+                    const targetYear = billingPeriod.value === 'current' ? currentYear : lastMonthYear
+
+                    // Filter bookings for this club and target month
+                    const monthBookings = bookings.value.filter(b => {
+                        if (b.clubId !== club.id) return false
+                        const d = new Date(b.date)
+                        return d.getMonth() === targetMonth && d.getFullYear() === targetYear
+                    })
+
+                    // Aggregate by student
+                    const studentMap = new Map()
+                    for (const booking of monthBookings) {
+                        for (const studentId of booking.students) {
+                            const count = studentMap.get(studentId) || 0
+                            studentMap.set(studentId, count + 1)
+                        }
+                    }
+
+                    // Build sorted list
+                    const studentList = Array.from(studentMap.entries())
+                        .map(([id, count]) => {
+                            const student = students.value.find(s => s.id === id)
+                            const plan = PLANS[id]
+                            const planCredits = plan?.creditsPerMonth ?? 0
+                            const planPrice = plan?.price ?? 0
+                            const pct = planCredits > 0 ? Math.round((count / planCredits) * 100) : 0
+                            const revenue = planCredits > 0 ? (count / planCredits) * planPrice : 0
+                            return { id, name: student?.name ?? 'Unknown', age: student?.age, level: student?.level, plan: plan?.name ?? '-', planCredits, planPrice, bookings: count, pct, revenue }
+                        })
+                        .sort((a, b) => b.revenue - a.revenue)
+
+                    const totalBookings = studentList.reduce((sum, s) => sum + s.bookings, 0)
+                    const grossRevenue = studentList.reduce((sum, s) => sum + s.revenue, 0)
+
+                    // Get platform fee from parent (passed via props won't work here, so we'll use a default)
+                    // For now, hardcode 15% or we need to pass it through
+                    const platformFeePct = 15
+                    const platformCut = (platformFeePct / 100) * grossRevenue
+
+                    // Get club subscription
+                    const clubPlan = CLUB_PLANS.find(p => p.id === club.planId)
+                    const subscription = clubPlan?.price ?? 0
+                    const netRevenue = grossRevenue - platformCut - subscription
+
+                    // Revenue prediction (linear projection)
+                    let prediction = null
+                    if (billingPeriod.value === 'current' && grossRevenue > 0) {
+                        const now = new Date()
+                        const daysElapsed = now.getDate()
+                        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+                        const dailyAvgGross = grossRevenue / daysElapsed
+                        const projectedGross = dailyAvgGross * daysInMonth
+                        const projectedPlatformCut = (platformFeePct / 100) * projectedGross
+                        const projectedNet = projectedGross - projectedPlatformCut - subscription
+                        prediction = { daysElapsed, daysInMonth, gross: projectedGross, platformCut: projectedPlatformCut, subscription, net: projectedNet }
+                    }
+
+                    return { students: studentList, totalBookings, totalCredits: totalBookings, grossRevenue, platformCut, subscription, netRevenue, prediction }
+                })
+
+                const billingPeriodLabel = computed(() => {
+                    const now = new Date()
+                    const month = billingPeriod.value === 'current' ? now.getMonth() : (now.getMonth() === 0 ? 11 : now.getMonth() - 1)
+                    const year = billingPeriod.value === 'current' ? now.getFullYear() : (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear())
+                    return new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                })
+
+                return { clubs, selectedClub, isChangingClub, selectClub, getClubPlan, weekDays, weekLabel, prevWeek, nextWeek, goToday, calendarRows, popover, selectSlot, closePopover, requestBlock, blockSlot, unblockSlot, billingPeriod, billingData, billingPeriodLabel }
+            },
+            template: `
+                <div class="layout">
+                    <div class="panel">
+                        <h2 class="panel-title">Club</h2>
+                        <div v-if="!selectedClub || isChangingClub" class="card-list">
+                            <div v-for="club in clubs" :key="club.id" class="card" :class="{ selected: selectedClub?.id === club.id }" @click="selectClub(club)">
+                                <div class="title">{{ club.name }}</div>
+                                <div class="meta">
+                                    <span>{{ club.location }}</span>
+                                    <span class="accent">{{ getClubPlan(club.planId)?.name }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="collapsed-selection">
+                            <div class="selected-info">
+                                <span class="selected-name">{{ selectedClub.name }}</span>
+                                <span class="selected-meta">{{ selectedClub.location }} · {{ getClubPlan(selectedClub.planId)?.name }} · {{ selectedClub.clientCount }} clients</span>
+                            </div>
+                            <button class="btn-change" @click="isChangingClub = true">Change</button>
+                        </div>
+                    </div>
+
+                    <template v-if="selectedClub">
+                        <div class="panel">
+                            <h2 class="panel-title">Matching Rules</h2>
+                            <div class="matching-rules">
+                                <div class="matching-rule">
+                                    <label>Min age</label>
+                                    <input type="number" v-model.number="selectedClub.minAge" min="0" max="99">
+                                    <span>years</span>
+                                </div>
+                                <div class="matching-rule">
+                                    <label>Max age delta</label>
+                                    <input type="number" v-model.number="selectedClub.maxAgeDelta" min="0" max="50">
+                                    <span>years</span>
+                                </div>
+                                <div class="matching-rule">
+                                    <label>Max level delta</label>
+                                    <input type="number" v-model.number="selectedClub.maxLevelDelta" min="0" max="10">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="calendar-panel">
+                            <div class="calendar-header">
+                                <div class="calendar-nav">
+                                    <button @click="goToday" class="today-btn">Today</button>
+                                    <button @click="prevWeek">←</button>
+                                    <button @click="nextWeek">→</button>
+                                    <span class="week-label">{{ weekLabel }}</span>
+                                </div>
+                                <div class="legend">
+                                    <div class="legend-item"><div class="legend-dot open"></div><span>Empty</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: var(--slot-joinable);"></div><span>Partial</span></div>
+                                    <div class="legend-item"><div class="legend-dot booked"></div><span>Full</span></div>
+                                    <div class="legend-item"><div class="legend-dot" style="background: var(--bg); border: 1px solid var(--border);"></div><span>Blocked</span></div>
+                                </div>
+                            </div>
+                            <div class="calendar-grid">
+                                <div class="calendar-corner"></div>
+                                <div v-for="day in weekDays" :key="day.date" class="day-header" :class="{ today: day.isToday }">
+                                    <div class="day-name">{{ day.name }}</div>
+                                    <div class="day-num">{{ day.num }}</div>
+                                </div>
+                                <template v-for="row in calendarRows" :key="row.hour">
+                                    <div class="time-label">{{ row.hour }}:00</div>
+                                    <div v-for="slot in row.slots" :key="slot.key" class="slot" :class="[slot.status, { today: slot.isToday, past: slot.isPast, 'past-empty': slot.isPast && !slot.count }]" @click="selectSlot($event, slot)">
+                                        <template v-if="slot.templateId">
+                                            <div v-if="slot.status === 'blocked'" class="slot-info">Blocked</div>
+                                            <div v-else-if="slot.names?.length" class="slot-names">{{ slot.names.join(', ') }}</div>
+                                            <div v-if="slot.status !== 'blocked'" class="slot-count">{{ slot.count }}/{{ slot.capacity }}</div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Slot Popover -->
+                            <div v-if="popover.show" class="slot-popover-backdrop" @click="closePopover"></div>
+                            <div v-if="popover.show" class="slot-popover" :style="{ left: popover.x + 'px', top: popover.y + 'px' }">
+                                <template v-if="popover.confirmBlock">
+                                    <div class="slot-popover-warning">
+                                        <strong>Refund warning</strong>
+                                        <p>Blocking this slot will refund {{ popover.slot.count }} credit{{ popover.slot.count > 1 ? 's' : '' }} to the booked students.</p>
+                                    </div>
+                                    <div class="popover-actions">
+                                        <button class="btn-action" @click="popover.confirmBlock = false">Cancel</button>
+                                        <button class="btn-action danger" @click="blockSlot">Confirm</button>
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <div v-if="popover.slot?.status === 'blocked'" class="slot-popover-info">
+                                        <strong>Blocked</strong>
+                                        <span>This slot is not available</span>
+                                    </div>
+                                    <div v-else-if="popover.slot?.bookedStudents?.length" class="slot-popover-info">
+                                        <div class="popover-header">
+                                            <strong>{{ popover.slot.count }}/{{ popover.slot.capacity }} booked</strong>
+                                            <span class="popover-range">{{ popover.slot.ageRange.min }}-{{ popover.slot.ageRange.max }}y · L{{ popover.slot.levelRange.min }}-{{ popover.slot.levelRange.max }}</span>
+                                        </div>
+                                        <ul class="popover-students">
+                                            <li v-for="s in popover.slot.bookedStudents" :key="s.id">{{ s.name }} <span>{{ s.age }}y · L{{ s.level }}</span></li>
+                                        </ul>
+                                    </div>
+                                    <div v-else class="slot-popover-info">
+                                        <strong>Empty slot</strong>
+                                        <span>No bookings yet</span>
+                                    </div>
+                                    <template v-if="!popover.slot?.isPast">
+                                        <button v-if="popover.slot?.status === 'blocked'" class="btn-action" @click="unblockSlot">Unblock</button>
+                                        <button v-else class="btn-action danger" @click="requestBlock">Block slot</button>
+                                    </template>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="billing-panel">
+                            <div class="billing-header">
+                                <h2 class="panel-title">Billing</h2>
+                                <div class="billing-filter">
+                                    <button :class="{ active: billingPeriod === 'last' }" @click="billingPeriod = 'last'">Last month</button>
+                                    <button :class="{ active: billingPeriod === 'current' }" @click="billingPeriod = 'current'">This month</button>
+                                </div>
+                            </div>
+                            <div class="billing-summary-row">
+                                <span class="billing-period">{{ billingPeriodLabel }}</span>
+                                <span class="billing-totals">{{ billingData.students.length }} students · {{ billingData.totalBookings }} bookings · {{ billingData.totalCredits }} credits</span>
+                            </div>
+                            <div v-if="billingData.students.length" class="billing-table">
+                                <div class="billing-table-header">
+                                    <span>Student</span>
+                                    <span>Plan</span>
+                                    <span>Bookings</span>
+                                    <span>Credits</span>
+                                    <span>Revenue</span>
+                                </div>
+                                <div v-for="s in billingData.students" :key="s.id" class="billing-table-row">
+                                    <span>{{ s.name }}</span>
+                                    <span>{{ s.plan }}</span>
+                                    <span>{{ s.bookings }}</span>
+                                    <span>{{ s.bookings }}/{{ s.planCredits }} ({{ s.pct }}%)</span>
+                                    <span>R$ {{ s.revenue.toFixed(2) }}</span>
+                                </div>
+                                <div class="billing-table-footer">
+                                    <span>Gross</span>
+                                    <span></span>
+                                    <span>{{ billingData.totalBookings }}</span>
+                                    <span></span>
+                                    <span>R$ {{ billingData.grossRevenue.toFixed(2) }}</span>
+                                </div>
+                                <div class="billing-table-row deduction-row">
+                                    <span>Platform fee (15%)</span>
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                    <span>-R$ {{ billingData.platformCut.toFixed(2) }}</span>
+                                </div>
+                                <div class="billing-table-row deduction-row">
+                                    <span>Subscription</span>
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                    <span>-R$ {{ billingData.subscription.toFixed(2) }}</span>
+                                </div>
+                                <div class="billing-table-footer net-row">
+                                    <span>Payout</span>
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                    <span>R$ {{ billingData.netRevenue.toFixed(2) }}</span>
+                                </div>
+                            </div>
+                            <div v-else class="billing-empty">No bookings for this period</div>
+                            </div>
+                            <div v-if="billingData.prediction" class="prediction-panel">
+                                <div class="prediction-header">
+                                    <h3>Monthly Projection</h3>
+                                    <span class="prediction-badge">{{ billingData.prediction.daysElapsed }}/{{ billingData.prediction.daysInMonth }} days</span>
+                                </div>
+                                <div class="prediction-table">
+                                    <div class="prediction-table-row">
+                                        <span>Projected gross</span>
+                                        <span>R$ {{ billingData.prediction.gross.toFixed(2) }}</span>
+                                    </div>
+                                    <div class="prediction-table-row deduction">
+                                        <span>Platform fee (15%)</span>
+                                        <span>-R$ {{ billingData.prediction.platformCut.toFixed(2) }}</span>
+                                    </div>
+                                    <div class="prediction-table-row deduction">
+                                        <span>Subscription</span>
+                                        <span>-R$ {{ billingData.prediction.subscription.toFixed(2) }}</span>
+                                    </div>
+                                </div>
+                                <div class="prediction-total">
+                                    <span>Projected payout</span>
+                                    <span>R$ {{ billingData.prediction.net.toFixed(2) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            `
+        }
+
+        // ============ ADMIN VIEW COMPONENT ============
+        const AdminView = {
+            props: ['clubs', 'students', 'bookings', 'clubPlans', 'platformFee'],
+            emits: ['update-fee'],
+            setup(props, { emit }) {
+                const { clubs, students, bookings, clubPlans, platformFee } = toRefs(props)
+
+                const adminPage = ref('platform')
+                const billingPeriod = ref('current')
+
+                const getTargetPeriod = () => {
+                    const now = new Date()
+                    const currentMonth = now.getMonth()
+                    const currentYear = now.getFullYear()
+                    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
+                    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+                    return {
+                        month: billingPeriod.value === 'current' ? currentMonth : lastMonth,
+                        year: billingPeriod.value === 'current' ? currentYear : lastMonthYear
+                    }
+                }
+
+                const billingPeriodLabel = computed(() => {
+                    const { month, year } = getTargetPeriod()
+                    return new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                })
+
+                // Get active students (those with bookings in the period)
+                const activeStudentIds = computed(() => {
+                    const { month, year } = getTargetPeriod()
+                    const ids = new Set()
+                    for (const booking of bookings.value) {
+                        const d = new Date(booking.date)
+                        if (d.getMonth() === month && d.getFullYear() === year) {
+                            for (const studentId of booking.students) {
+                                ids.add(studentId)
+                            }
+                        }
+                    }
+                    return ids
+                })
+
+                // Students by plan (only active in period)
+                const studentsByPlan = computed(() => {
+                    const planCounts = {}
+                    for (const student of students.value) {
+                        if (!activeStudentIds.value.has(student.id)) continue
+                        const plan = PLANS[student.id]
+                        const planName = plan?.name ?? 'Unknown'
+                        if (!planCounts[planName]) {
+                            planCounts[planName] = { name: planName, count: 0, price: plan?.price ?? 0, revenue: 0 }
+                        }
+                        planCounts[planName].count++
+                        planCounts[planName].revenue += plan?.price ?? 0
+                    }
+                    return Object.values(planCounts).sort((a, b) => b.revenue - a.revenue)
+                })
+
+                const totalStudents = computed(() => activeStudentIds.value.size)
+                const totalStudentRevenue = computed(() => studentsByPlan.value.reduce((sum, p) => sum + p.revenue, 0))
+
+                // Clubs by plan (all clubs, subscriptions are fixed)
+                const clubsByPlan = computed(() => {
+                    const planCounts = {}
+                    for (const club of clubs.value) {
+                        const plan = CLUB_PLANS.find(p => p.id === club.planId)
+                        const planName = plan?.name ?? 'Unknown'
+                        if (!planCounts[planName]) {
+                            planCounts[planName] = { name: planName, count: 0, price: plan?.price ?? 0, revenue: 0 }
+                        }
+                        planCounts[planName].count++
+                        planCounts[planName].revenue += plan?.price ?? 0
+                    }
+                    return Object.values(planCounts).sort((a, b) => b.revenue - a.revenue)
+                })
+
+                const totalClubs = computed(() => clubs.value.length)
+                const totalClubRevenue = computed(() => clubsByPlan.value.reduce((sum, p) => sum + p.revenue, 0))
+
+                // Platform revenue (fee from student payments)
+                const platformRevenue = computed(() => (platformFee.value / 100) * totalStudentRevenue.value)
+                const totalRevenue = computed(() => totalClubRevenue.value + platformRevenue.value)
+
+                // Club payouts - revenue per club after platform cut minus subscription
+                const clubPayouts = computed(() => {
+                    const { month, year } = getTargetPeriod()
+
+                    return clubs.value.map(club => {
+                        const clubPlan = CLUB_PLANS.find(p => p.id === club.planId)
+                        const subscription = clubPlan?.price ?? 0
+
+                        // Get bookings for this club in the period
+                        const clubBookings = bookings.value.filter(b => {
+                            if (b.clubId !== club.id) return false
+                            const d = new Date(b.date)
+                            return d.getMonth() === month && d.getFullYear() === year
+                        })
+
+                        // Calculate gross revenue from student credits
+                        let grossRevenue = 0
+                        for (const booking of clubBookings) {
+                            for (const studentId of booking.students) {
+                                const plan = PLANS[studentId]
+                                if (plan && plan.creditsPerMonth > 0) {
+                                    grossRevenue += plan.price / plan.creditsPerMonth
+                                }
+                            }
+                        }
+
+                        const platformCut = (platformFee.value / 100) * grossRevenue
+                        const netRevenue = grossRevenue - platformCut
+                        const payout = netRevenue - subscription
+                        const totalBookings = clubBookings.reduce((sum, b) => sum + b.students.length, 0)
+
+                        return {
+                            id: club.id,
+                            name: club.name,
+                            plan: clubPlan?.name ?? '-',
+                            subscription,
+                            totalBookings,
+                            grossRevenue,
+                            platformCut,
+                            netRevenue,
+                            payout
+                        }
+                    }).sort((a, b) => b.payout - a.payout)
+                })
+
+                const totalPayout = computed(() => clubPayouts.value.reduce((sum, c) => sum + c.payout, 0))
+                const totalGrossRevenue = computed(() => clubPayouts.value.reduce((sum, c) => sum + c.grossRevenue, 0))
+                const totalPlatformCut = computed(() => clubPayouts.value.reduce((sum, c) => sum + c.platformCut, 0))
+                const totalSubscriptions = computed(() => clubPayouts.value.reduce((sum, c) => sum + c.subscription, 0))
+
+                const updateFee = (e) => {
+                    const val = parseInt(e.target.value) || 0
+                    emit('update-fee', Math.max(0, Math.min(100, val)))
+                }
+
+                const adjustAllPrices = (pct) => {
+                    for (const plan of clubPlans.value) {
+                        plan.price = Math.round(plan.price * (1 + pct / 100) * 100) / 100
+                    }
+                }
+
+                return { adminPage, billingPeriod, billingPeriodLabel, studentsByPlan, totalStudents, totalStudentRevenue, clubsByPlan, totalClubs, totalClubRevenue, platformFee, platformRevenue, totalRevenue, clubPayouts, totalPayout, totalGrossRevenue, totalPlatformCut, totalSubscriptions, updateFee, clubPlans, adjustAllPrices }
+            },
+            template: `
+                <div class="layout">
+                    <div class="panel">
+                        <h2 class="panel-title">Platform Configuration</h2>
+                        <div class="config-row">
+                            <label>Platform fee on student payments</label>
+                            <div class="config-input">
+                                <input type="number" :value="platformFee" @input="updateFee" min="0" max="100">
+                                <span>%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Club Subscriptions</h2>
+                            <div class="adjust-buttons">
+                                <button @click="adjustAllPrices(-5)">-5%</button>
+                                <button @click="adjustAllPrices(5)">+5%</button>
+                            </div>
+                        </div>
+                        <div class="config-table">
+                            <div class="config-table-header">
+                                <span>Plan</span>
+                                <span>Max Clients</span>
+                                <span>Monthly Price</span>
+                            </div>
+                            <div v-for="plan in clubPlans" :key="plan.id" class="config-table-row">
+                                <span>{{ plan.name }}</span>
+                                <span>{{ plan.maxClients }}</span>
+                                <div class="config-input">
+                                    <span>R$</span>
+                                    <input type="number" v-model.number="plan.price" min="0" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="admin-subnav">
+                        <button :class="{ active: adminPage === 'platform' }" @click="adminPage = 'platform'">Platform Revenue</button>
+                        <button :class="{ active: adminPage === 'payouts' }" @click="adminPage = 'payouts'">Club Payouts</button>
+                    </div>
+
+                    <div class="admin-header">
+                        <div class="admin-period">{{ billingPeriodLabel }}</div>
+                        <div class="billing-filter">
+                            <button :class="{ active: billingPeriod === 'last' }" @click="billingPeriod = 'last'">Last month</button>
+                            <button :class="{ active: billingPeriod === 'current' }" @click="billingPeriod = 'current'">This month</button>
+                        </div>
+                    </div>
+
+                    <!-- Platform Revenue Page -->
+                    <template v-if="adminPage === 'platform'">
+                        <div class="admin-grid">
+                            <div class="panel">
+                                <h2 class="panel-title">Students</h2>
+                                <div class="admin-table">
+                                    <div class="admin-table-header">
+                                        <span>Plan</span>
+                                        <span>Students</span>
+                                        <span>Price</span>
+                                        <span>Revenue</span>
+                                    </div>
+                                    <div v-for="p in studentsByPlan" :key="p.name" class="admin-table-row">
+                                        <span>{{ p.name }}</span>
+                                        <span>{{ p.count }}</span>
+                                        <span>R$ {{ p.price.toFixed(2) }}</span>
+                                        <span>R$ {{ p.revenue.toFixed(2) }}</span>
+                                    </div>
+                                    <div class="admin-table-footer">
+                                        <span>Total</span>
+                                        <span>{{ totalStudents }}</span>
+                                        <span></span>
+                                        <span>R$ {{ totalStudentRevenue.toFixed(2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="panel">
+                                <h2 class="panel-title">Clubs</h2>
+                                <div class="admin-table">
+                                    <div class="admin-table-header">
+                                        <span>Plan</span>
+                                        <span>Clubs</span>
+                                        <span>Price</span>
+                                        <span>Revenue</span>
+                                    </div>
+                                    <div v-for="p in clubsByPlan" :key="p.name" class="admin-table-row">
+                                        <span>{{ p.name }}</span>
+                                        <span>{{ p.count }}</span>
+                                        <span>R$ {{ p.price.toFixed(2) }}</span>
+                                        <span>R$ {{ p.revenue.toFixed(2) }}</span>
+                                    </div>
+                                    <div class="admin-table-footer">
+                                        <span>Total</span>
+                                        <span>{{ totalClubs }}</span>
+                                        <span></span>
+                                        <span>R$ {{ totalClubRevenue.toFixed(2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel revenue-panel">
+                            <h2 class="panel-title">Revenue Summary</h2>
+                            <div class="revenue-grid">
+                                <div class="revenue-item">
+                                    <span class="revenue-label">Club subscriptions</span>
+                                    <span class="revenue-value">R$ {{ totalClubRevenue.toFixed(2) }}</span>
+                                </div>
+                                <div class="revenue-item">
+                                    <span class="revenue-label">Platform fee ({{ platformFee }}% of R$ {{ totalStudentRevenue.toFixed(2) }})</span>
+                                    <span class="revenue-value">R$ {{ platformRevenue.toFixed(2) }}</span>
+                                </div>
+                                <div class="revenue-item total">
+                                    <span class="revenue-label">Total monthly revenue</span>
+                                    <span class="revenue-value">R$ {{ totalRevenue.toFixed(2) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Club Payouts Page -->
+                    <template v-if="adminPage === 'payouts'">
+                        <div class="panel">
+                            <h2 class="panel-title">Club Payouts</h2>
+                            <div class="payout-table">
+                                <div class="payout-table-header">
+                                    <span>Club</span>
+                                    <span>Plan</span>
+                                    <span>Bookings</span>
+                                    <span>Gross</span>
+                                    <span>Fee ({{ platformFee }}%)</span>
+                                    <span>Subscription</span>
+                                    <span>Payout</span>
+                                </div>
+                                <div v-for="c in clubPayouts" :key="c.id" class="payout-table-row">
+                                    <span>{{ c.name }}</span>
+                                    <span>{{ c.plan }}</span>
+                                    <span>{{ c.totalBookings }}</span>
+                                    <span>R$ {{ c.grossRevenue.toFixed(2) }}</span>
+                                    <span class="deduction">-R$ {{ c.platformCut.toFixed(2) }}</span>
+                                    <span class="deduction">-R$ {{ c.subscription.toFixed(2) }}</span>
+                                    <span :class="{ negative: c.payout < 0 }">R$ {{ c.payout.toFixed(2) }}</span>
+                                </div>
+                                <div class="payout-table-footer">
+                                    <span>Total</span>
+                                    <span></span>
+                                    <span></span>
+                                    <span>R$ {{ totalGrossRevenue.toFixed(2) }}</span>
+                                    <span class="deduction">-R$ {{ totalPlatformCut.toFixed(2) }}</span>
+                                    <span class="deduction">-R$ {{ totalSubscriptions.toFixed(2) }}</span>
+                                    <span :class="{ negative: totalPayout < 0 }">R$ {{ totalPayout.toFixed(2) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            `
+        }
+
+        // ============ MAIN APP ============
+        const app = createApp({
+            setup() {
+                const currentView = ref('student')
+                const views = [
+                    { id: 'student', label: 'Student', title: 'Playfast Student', subtitle: 'Book tennis slots at your favorite clubs' },
+                    { id: 'club', label: 'Club', title: 'Playfast Club', subtitle: 'Manage matching rules and view bookings' },
+                    { id: 'admin', label: 'Admin', title: 'Playfast Admin', subtitle: 'Platform administration' },
+                ]
+
+                const clubs = reactive([
+                    { id: 1, name: 'Tennis Park', location: 'São Paulo - Pinheiros', minAge: 12, maxAgeDelta: 5, maxLevelDelta: 1, planId: 2, clientCount: 78, blockedSlots: [] },
+                    { id: 2, name: 'Clube Harmonia', location: 'São Paulo - Moema', minAge: 21, maxAgeDelta: 10, maxLevelDelta: 2, planId: 3, clientCount: 142, blockedSlots: [] },
+                    { id: 3, name: 'Arena Saúde', location: 'São Paulo - Vila Olímpia', minAge: 12, maxAgeDelta: 3, maxLevelDelta: 1, planId: 1, clientCount: 35, blockedSlots: [] },
+                ])
+
+                // Students start with full credits from their plan
+                const students = reactive([
+                    { id: 1, name: 'Lucas Silva', age: 28, level: 5, credits: 8 },      // Pro - adult intermediate
+                    { id: 2, name: 'Maria Santos', age: 34, level: 3, credits: 4 },     // Basic - adult beginner
+                    { id: 3, name: 'Pedro Oliveira', age: 12, level: 2, credits: 8 },   // Junior - kid beginner
+                    { id: 4, name: 'Ana Costa', age: 45, level: 6, credits: 8 },        // Pro - adult advanced
+                    { id: 5, name: 'João Pereira', age: 9, level: 1, credits: 8 },      // Junior - kid starter
+                    { id: 6, name: 'Carlos Mendes', age: 30, level: 5, credits: 8 },    // Pro - adult intermediate
+                    { id: 7, name: 'Beatriz Lima', age: 26, level: 4, credits: 4 },     // Basic - adult intermediate
+                    { id: 8, name: 'Thiago Santos', age: 14, level: 3, credits: 8 },    // Junior - teen beginner
+                    { id: 9, name: 'Fernanda Rocha', age: 38, level: 5, credits: 8 },   // Pro - adult intermediate
+                    { id: 10, name: 'Rafael Costa', age: 42, level: 6, credits: 4 },    // Basic - adult advanced
+                    { id: 11, name: 'Laura Souza', age: 11, level: 2, credits: 8 },     // Junior - kid beginner
+                    { id: 12, name: 'Gustavo Alves', age: 52, level: 4, credits: 8 },   // Pro - senior intermediate
+                ])
+
+                const bookings = reactive([])
+
+                // Initialize transactions with monthly credit for each student
+                const transactions = reactive({})
+                for (const student of students) {
+                    const plan = PLANS[student.id]
+                    transactions[student.id] = [
+                        { date: '2025-01-01', type: 'credit', amount: plan?.creditsPerMonth ?? 8, description: 'Monthly renewal' }
+                    ]
+                }
+
+                // ============ BOOKING LOGIC ============
+                const getStudent = (id) => students.find(s => s.id === id)
+                const getClub = (id) => clubs.find(c => c.id === id)
+                const getTemplate = (id) => SLOT_TEMPLATES.find(t => t.id === id)
+                const slotDesc = (club, template) => `${club.name} ${DAY_NAMES[template.dayOfWeek]} ${template.startHour}:00`
+
+                function checkMatch(existingIds, candidateId, club) {
+                    const candidate = getStudent(candidateId)
+                    if (!candidate) return { ok: false, reason: 'Student not found' }
+                    for (const id of existingIds) {
+                        const existing = getStudent(id)
+                        if (!existing) continue
+                        if (Math.abs(existing.age - candidate.age) > club.maxAgeDelta) return { ok: false, reason: 'age' }
+                        if (Math.abs(existing.level - candidate.level) > club.maxLevelDelta) return { ok: false, reason: 'level' }
+                    }
+                    return { ok: true }
+                }
+
+                function isSlotPast(date, hour) {
+                    const now = new Date()
+                    const today = formatDate(now)
+                    return date < today || (date === today && hour <= now.getHours())
+                }
+
+                function book(clubId, templateId, date, studentId, { seed = false } = {}) {
+                    const student = getStudent(studentId)
+                    const club = getClub(clubId)
+                    const template = getTemplate(templateId)
+
+                    if (!student || !club || !template) return { ok: false, reason: 'Invalid data' }
+                    if (!seed && isSlotPast(date, template.startHour)) return { ok: false, reason: 'Slot in the past' }
+                    if (student.credits <= 0) return { ok: false, reason: 'No credits' }
+                    if (club.blockedSlots.includes(templateId)) return { ok: false, reason: 'Slot blocked' }
+                    if (club.minAge && student.age < club.minAge) return { ok: false, reason: 'Below minimum age' }
+
+                    const booking = bookings.find(b => b.clubId === clubId && b.templateId === templateId && b.date === date)
+
+                    if (booking) {
+                        if (booking.students.includes(studentId)) return { ok: false, reason: 'Already booked' }
+                        if (booking.students.length >= template.capacity) return { ok: false, reason: 'Full' }
+                        const match = checkMatch(booking.students, studentId, club)
+                        if (!match.ok) return { ok: false, reason: match.reason }
+                        booking.students.push(studentId)
+                    } else {
+                        bookings.push({ clubId, templateId, date, students: [studentId] })
+                    }
+
+                    student.credits--
+                    transactions[studentId].unshift({ date: new Date().toISOString(), type: 'used', amount: 1, description: slotDesc(club, template) })
+                    return { ok: true }
+                }
+
+                function cancel(clubId, templateId, date, studentId) {
+                    const student = getStudent(studentId)
+                    const club = getClub(clubId)
+                    const template = getTemplate(templateId)
+
+                    if (!student || !club || !template) return { ok: false, reason: 'Invalid data' }
+                    if (isSlotPast(date, template.startHour)) return { ok: false, reason: 'Slot in the past' }
+
+                    const booking = bookings.find(b => b.clubId === clubId && b.templateId === templateId && b.date === date)
+                    if (!booking) return { ok: false, reason: 'No booking found' }
+
+                    const idx = booking.students.indexOf(studentId)
+                    if (idx === -1) return { ok: false, reason: 'Student not in booking' }
+
+                    booking.students.splice(idx, 1)
+                    student.credits++
+                    transactions[studentId].unshift({ date: new Date().toISOString(), type: 'refund', amount: 1, description: `Cancelled ${slotDesc(club, template)}` })
+
+                    return { ok: true }
+                }
+
+                // ============ SEED DATA ============
+                const seed = (clubId, templateId, date, studentId) => book(clubId, templateId, date, studentId, { seed: true })
+                const tid = (dayOfWeek, hour) => SLOT_TEMPLATES.find(t => t.dayOfWeek === dayOfWeek && t.startHour === hour)?.id
+
+                // Get date for a day of week in current or next week
+                function weekDay(dayOfWeek, nextWeek = false) {
+                    const d = getWeekStart(new Date())
+                    if (nextWeek) d.setDate(d.getDate() + 7)
+                    d.setDate(d.getDate() + (dayOfWeek === 0 ? 6 : dayOfWeek - 1)) // week starts Monday
+                    return formatDate(d)
+                }
+
+                // Current week dates
+                const mon1 = weekDay(1), tue1 = weekDay(2), wed1 = weekDay(3), thu1 = weekDay(4)
+                const fri1 = weekDay(5), sat1 = weekDay(6), sun1 = weekDay(0)
+
+                // Next week dates
+                const mon2 = weekDay(1, true), tue2 = weekDay(2, true), sat2 = weekDay(6, true)
+
+                // Tennis Park (club 1) - strict matching (age ±5, level ±1)
+                seed(1, tid(1, 8), mon1, 1)   // Lucas 28, L5
+                seed(1, tid(1, 8), mon1, 6)   // Carlos 30, L5
+                seed(1, tid(1, 8), mon1, 7)   // Beatriz 26, L4
+
+                seed(1, tid(2, 9), tue1, 3)   // Pedro 12, L2
+                seed(1, tid(2, 9), tue1, 11)  // Laura 11, L2
+
+                seed(1, tid(3, 18), wed1, 1)  // Lucas 28, L5
+                seed(1, tid(3, 18), wed1, 6)  // Carlos 30, L5
+                seed(1, tid(3, 18), wed1, 9)  // Fernanda 38... won't match (age gap > 5)
+                seed(1, tid(3, 18), wed1, 7)  // Beatriz 26, L4
+
+                seed(1, tid(4, 10), thu1, 4)  // Ana 45, L6
+                seed(1, tid(4, 10), thu1, 12) // Gustavo 52... won't match strict rules
+
+                // Clube Harmonia (club 2) - relaxed matching (age ±10, level ±2)
+                seed(2, tid(5, 19), fri1, 4)  // Ana 45, L6
+                seed(2, tid(5, 19), fri1, 9)  // Fernanda 38, L5
+                seed(2, tid(5, 19), fri1, 10) // Rafael 42, L6
+
+                // Saturday 10:00 - FULL slot (ages 26-34, levels 3-5, all within ±10/±2)
+                seed(2, tid(6, 10), sat1, 7)  // Beatriz 26, L4
+                seed(2, tid(6, 10), sat1, 1)  // Lucas 28, L5
+                seed(2, tid(6, 10), sat1, 6)  // Carlos 30, L5
+                seed(2, tid(6, 10), sat1, 2)  // Maria 34, L3 - fills it
+
+                seed(2, tid(0, 9), sun1, 2)   // Maria 34, L3
+                seed(2, tid(0, 9), sun1, 7)   // Beatriz 26, L4
+
+                // Sunday 14:00 - FULL kids slot (ages 9-14, levels 1-3)
+                seed(2, tid(0, 14), sun1, 3)  // Pedro 12, L2
+                seed(2, tid(0, 14), sun1, 11) // Laura 11, L2
+                seed(2, tid(0, 14), sun1, 8)  // Thiago 14, L3
+                seed(2, tid(0, 14), sun1, 5)  // João 9, L1 - fills it
+
+                // Arena Saúde (club 3) - very strict (age ±3, level ±1)
+                seed(3, tid(1, 7), mon1, 1)   // Lucas 28, L5
+                seed(3, tid(1, 7), mon1, 6)   // Carlos 30, L5
+
+                seed(3, tid(2, 17), tue1, 3)  // Pedro 12, L2
+                seed(3, tid(2, 17), tue1, 11) // Laura 11, L2
+                seed(3, tid(2, 17), tue1, 8)  // Thiago 14, L3... might not match strict
+
+                // More current week bookings - Tennis Park
+                seed(1, tid(1, 10), mon1, 4)  // Ana 45, L6
+                seed(1, tid(1, 10), mon1, 10) // Rafael 42, L6
+                seed(1, tid(1, 14), mon1, 3)  // Pedro 12, L2
+                seed(1, tid(1, 14), mon1, 5)  // João 9, L1
+                seed(1, tid(2, 16), tue1, 9)  // Fernanda 38, L5
+                seed(1, tid(2, 16), tue1, 12) // Gustavo 52, L4
+                seed(1, tid(3, 8), wed1, 2)   // Maria 34, L3
+                seed(1, tid(3, 8), wed1, 7)   // Beatriz 26, L4
+                seed(1, tid(4, 17), thu1, 1)  // Lucas 28, L5
+                seed(1, tid(4, 17), thu1, 6)  // Carlos 30, L5
+                seed(1, tid(4, 17), thu1, 7)  // Beatriz 26, L4
+                seed(1, tid(5, 9), fri1, 8)   // Thiago 14, L3
+                seed(1, tid(5, 9), fri1, 11)  // Laura 11, L2
+                seed(1, tid(5, 18), fri1, 4)  // Ana 45, L6
+                seed(1, tid(6, 8), sat1, 1)   // Lucas 28, L5
+                seed(1, tid(6, 8), sat1, 6)   // Carlos 30, L5
+                seed(1, tid(6, 8), sat1, 9)   // Fernanda 38... won't match
+                seed(1, tid(6, 14), sat1, 3)  // Pedro 12, L2
+                seed(1, tid(6, 14), sat1, 5)  // João 9, L1
+                seed(1, tid(6, 14), sat1, 11) // Laura 11, L2
+                seed(1, tid(0, 10), sun1, 2)  // Maria 34, L3
+                seed(1, tid(0, 10), sun1, 7)  // Beatriz 26, L4
+                seed(1, tid(0, 10), sun1, 12) // Gustavo 52... won't match
+                seed(1, tid(0, 16), sun1, 4)  // Ana 45, L6
+                seed(1, tid(0, 16), sun1, 10) // Rafael 42, L6
+
+                // More current week - Clube Harmonia (relaxed rules)
+                seed(2, tid(1, 9), mon1, 1)   // Lucas 28, L5
+                seed(2, tid(1, 9), mon1, 2)   // Maria 34, L3
+                seed(2, tid(1, 9), mon1, 7)   // Beatriz 26, L4
+                seed(2, tid(1, 18), mon1, 4)  // Ana 45, L6
+                seed(2, tid(1, 18), mon1, 9)  // Fernanda 38, L5
+                seed(2, tid(1, 18), mon1, 10) // Rafael 42, L6
+                seed(2, tid(1, 18), mon1, 12) // Gustavo 52, L4 - fills it
+                seed(2, tid(2, 10), tue1, 3)  // Pedro 12, L2
+                seed(2, tid(2, 10), tue1, 5)  // João 9, L1
+                seed(2, tid(2, 10), tue1, 8)  // Thiago 14, L3
+                seed(2, tid(2, 10), tue1, 11) // Laura 11, L2 - fills it
+                seed(2, tid(2, 19), tue1, 1)  // Lucas 28, L5
+                seed(2, tid(2, 19), tue1, 6)  // Carlos 30, L5
+                seed(2, tid(3, 8), wed1, 4)   // Ana 45, L6
+                seed(2, tid(3, 8), wed1, 12)  // Gustavo 52, L4
+                seed(2, tid(3, 17), wed1, 3)  // Pedro 12, L2
+                seed(2, tid(3, 17), wed1, 8)  // Thiago 14, L3
+                seed(2, tid(4, 9), thu1, 2)   // Maria 34, L3
+                seed(2, tid(4, 9), thu1, 7)   // Beatriz 26, L4
+                seed(2, tid(4, 9), thu1, 9)   // Fernanda 38, L5
+                seed(2, tid(4, 18), thu1, 1)  // Lucas 28, L5
+                seed(2, tid(4, 18), thu1, 6)  // Carlos 30, L5
+                seed(2, tid(4, 18), thu1, 10) // Rafael 42, L6
+                seed(2, tid(5, 10), fri1, 5)  // João 9, L1
+                seed(2, tid(5, 10), fri1, 11) // Laura 11, L2
+                seed(2, tid(6, 16), sat1, 1)  // Lucas 28, L5
+                seed(2, tid(6, 16), sat1, 2)  // Maria 34, L3
+                seed(2, tid(6, 16), sat1, 6)  // Carlos 30, L5
+                seed(2, tid(0, 11), sun1, 4)  // Ana 45, L6
+                seed(2, tid(0, 11), sun1, 9)  // Fernanda 38, L5
+                seed(2, tid(0, 11), sun1, 12) // Gustavo 52, L4
+
+                // More current week - Arena Saúde (strict rules)
+                seed(3, tid(1, 9), mon1, 3)   // Pedro 12, L2
+                seed(3, tid(1, 9), mon1, 11)  // Laura 11, L2
+                seed(3, tid(1, 18), mon1, 4)  // Ana 45, L6
+                seed(3, tid(2, 8), tue1, 1)   // Lucas 28, L5
+                seed(3, tid(2, 8), tue1, 6)   // Carlos 30, L5
+                seed(3, tid(2, 8), tue1, 7)   // Beatriz 26, L4
+                seed(3, tid(3, 9), wed1, 2)   // Maria 34, L3
+                seed(3, tid(3, 18), wed1, 9)  // Fernanda 38, L5
+                seed(3, tid(4, 8), thu1, 5)   // João 9, L1
+                seed(3, tid(4, 16), thu1, 4)  // Ana 45, L6
+                seed(3, tid(4, 16), thu1, 10) // Rafael 42, L6
+                seed(3, tid(5, 10), fri1, 1)  // Lucas 28, L5
+                seed(3, tid(5, 10), fri1, 6)  // Carlos 30, L5
+                seed(3, tid(5, 17), fri1, 3)  // Pedro 12, L2
+                seed(3, tid(5, 17), fri1, 11) // Laura 11, L2
+                seed(3, tid(5, 17), fri1, 8)  // Thiago 14, L3
+                seed(3, tid(6, 9), sat1, 7)   // Beatriz 26, L4
+                seed(3, tid(6, 15), sat1, 5)  // João 9, L1
+                seed(3, tid(0, 10), sun1, 12) // Gustavo 52, L4
+                seed(3, tid(0, 15), sun1, 2)  // Maria 34, L3
+                seed(3, tid(0, 15), sun1, 9)  // Fernanda 38... won't match strict
+
+                // Next week bookings
+                seed(1, tid(1, 8), mon2, 1)   // Lucas
+                seed(1, tid(1, 8), mon2, 6)   // Carlos
+                seed(1, tid(1, 8), mon2, 7)   // Beatriz
+                seed(1, tid(2, 9), tue2, 3)   // Pedro
+                seed(1, tid(2, 9), tue2, 11)  // Laura
+                seed(1, tid(3, 18), tue2, 1)  // Lucas
+                seed(1, tid(3, 18), tue2, 6)  // Carlos
+                seed(2, tid(6, 10), sat2, 2)  // Maria
+                seed(2, tid(6, 10), sat2, 7)  // Beatriz
+                seed(2, tid(6, 10), sat2, 1)  // Lucas
+                seed(2, tid(0, 14), sat2, 3)  // Pedro
+                seed(2, tid(0, 14), sat2, 5)  // João
+                seed(2, tid(0, 14), sat2, 8)  // Thiago
+                seed(3, tid(2, 17), tue2, 3)  // Pedro
+                seed(3, tid(2, 17), tue2, 11) // Laura
+                seed(3, tid(4, 18), tue2, 4)  // Ana
+                seed(3, tid(4, 18), tue2, 10) // Rafael
+
+                const viewTitle = computed(() => views.find(v => v.id === currentView.value)?.title ?? 'Playfast')
+                const viewSubtitle = computed(() => views.find(v => v.id === currentView.value)?.subtitle ?? '')
+
+                const platformFee = ref(15) // percentage taken from student payments
+                const clubPlans = CLUB_PLANS
+
+                return { currentView, views, viewTitle, viewSubtitle, clubs, students, bookings, transactions, book, cancel, platformFee, clubPlans }
+            }
+        })
+
+        app.component('student-view', StudentView)
+        app.component('club-view', ClubView)
+        app.component('admin-view', AdminView)
+        app.mount('#app')
+    </script>
+</body>
+</html>
