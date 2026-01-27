@@ -45,17 +45,10 @@
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                overflow-x: hidden;
-            }
-
-            .container {
-                position: relative;
             }
 
             .main-content {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
+                margin: 0 auto;
             }
 
             .header {
@@ -71,7 +64,7 @@
                 letter-spacing: -0.02em;
                 margin-bottom: 0.5rem;
                 text-transform: uppercase;
-            }
+                            }
 
             .header .subtitle {
                 color: var(--text-secondary);
@@ -234,117 +227,54 @@
                 color: rgba(0, 0, 0, 0.5);
             }
 
-            /* Deadline Popover */
-            .deadline-popover {
+            /* Day Popover */
+            .day-popover {
                 position: fixed;
                 background: var(--bg-secondary);
                 border: 1px solid var(--border-color);
-                padding: 0.6rem 0.8rem;
+                border-left: 4px solid var(--popover-color, var(--border-color));
+                padding: 0.75rem 1rem;
                 font-size: 0.7rem;
                 pointer-events: none;
                 z-index: 1000;
+                max-width: 280px;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
             }
 
-            .deadline-popover::before {
-                content: "";
-                position: absolute;
-                left: 0;
-                top: 0;
-                bottom: 0;
-                width: 3px;
-                background: var(--deadline-color, var(--deadline-soft));
-            }
-
-            .deadline-popover-date {
-                font-size: 0.6rem;
-                color: var(--text-muted);
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                margin-bottom: 0.25rem;
-            }
-
-            .deadline-popover-label {
-                color: var(--text-primary);
-                font-weight: 600;
-            }
-
-            /* Phase Description Panel - Sidenote Style */
-            .phase-panel {
-                position: absolute;
-                left: calc(100% + 3%);
-                top: 50%;
-                transform: translateY(-50%);
-                width: 30%;
-                max-width: 500px;
-                padding: 1rem 1rem 1rem 1.25rem;
-                border: 1px dashed var(--text-primary);
-                border-left: 4px solid var(--phase-accent, var(--border-color));
-                background: var(--bg-secondary);
-                opacity: 0;
-                transition:
-                    opacity 0.2s ease,
-                    border-color 0.2s ease;
-            }
-
-            .phase-panel.visible {
-                opacity: 1;
-            }
-
-            .phase-panel-label {
-                font-size: 0.6rem;
-                text-transform: uppercase;
-                letter-spacing: 0.1em;
-                color: var(--text-muted);
-                margin-bottom: 0.35rem;
-            }
-
-            .phase-panel-title {
+            .day-popover-title {
                 font-family: "Space Mono", monospace;
                 font-size: 0.8rem;
                 font-weight: 700;
                 color: var(--text-primary);
-                margin-bottom: 0.6rem;
-                line-height: 1.35;
+                margin-bottom: 0.25rem;
             }
 
-            .phase-panel-dates {
+            .day-popover-dates {
                 font-size: 0.65rem;
-                color: var(--text-secondary);
-                margin-bottom: 0.75rem;
-            }
-
-            .phase-panel-dates .date-separator {
                 color: var(--text-muted);
-                margin: 0 0.25rem;
+                margin-bottom: 0.5rem;
             }
 
-            .phase-panel-duration {
-                display: block;
-                font-size: 0.6rem;
-                color: var(--text-muted);
-                margin-top: 0.25rem;
-                font-style: italic;
-            }
-
-            .phase-panel-description {
+            .day-popover-description {
                 font-size: 0.7rem;
-                line-height: 1.55;
+                line-height: 1.5;
                 color: var(--text-secondary);
                 white-space: pre-line;
             }
 
-            .phase-panel-description:empty::before {
-                content: "Sem descrição.";
-                font-style: italic;
-                color: var(--text-muted);
+            .day-popover-deadline {
+                margin-top: 0.5rem;
+                padding-top: 0.5rem;
+                border-top: 1px solid var(--border-color);
+                font-size: 0.7rem;
+                font-weight: 600;
+                color: var(--deadline-color, var(--text-primary));
             }
         </style>
     </head>
     <body>
         <div id="app">
-            <div class="container">
-                <div class="main-content">
+            <div class="main-content">
                     <div class="header">
                         <h1>Cronograma // Playfast</h1>
                         <div class="subtitle">
@@ -429,51 +359,24 @@
                     </div>
                 </div>
 
-                <!-- Phase Description Panel - Sidenote -->
+                <!-- Day Popover -->
                 <div
-                    class="phase-panel"
-                    :class="{ visible: activePhase }"
-                    :style="{ '--phase-accent': activePhase?.color }"
-                >
-                    <div class="phase-panel-label">Fase</div>
-                    <div class="phase-panel-title">
-                        {{ activePhase?.label }}
-                    </div>
-                    <div class="phase-panel-dates">
-                        <span
-                            >{{ formatShortDate(activePhase?.start) }}</span
-                        >
-                        <span class="date-separator">→</span>
-                        <span>{{ formatShortDate(activePhase?.end) }}</span>
-                        <span class="phase-panel-duration"
-                            >{{ getPhaseDuration(activePhase) }}</span
-                        >
-                    </div>
-                    <div class="phase-panel-description">
-                        {{ activePhase?.description }}
-                    </div>
-                </div>
-
-                <!-- Deadline Popover -->
-                <div
-                    class="deadline-popover"
-                    v-if="deadlinePopover.visible"
+                    class="day-popover"
+                    v-if="dayPopover.visible"
                     :style="{
-          left: deadlinePopover.x + 'px',
-          top: deadlinePopover.y + 'px',
-          '--deadline-color': deadlinePopover.color
-        }"
+                        left: dayPopover.x + 'px',
+                        top: dayPopover.y + 'px',
+                        '--popover-color': dayPopover.color,
+                        '--deadline-color': dayPopover.deadlineColor
+                    }"
                 >
-                    <div class="deadline-popover-date">
-                        {{ deadlinePopover.date }}
-                    </div>
-                    <div class="deadline-popover-label">
-                        {{ deadlinePopover.label }}
-                    </div>
+                    <div class="day-popover-title">{{ dayPopover.title }}</div>
+                    <div class="day-popover-dates">{{ dayPopover.dates }}</div>
+                    <div class="day-popover-description">{{ dayPopover.description }}</div>
+                    <div class="day-popover-deadline" v-if="dayPopover.deadline">{{ dayPopover.deadline }}</div>
                 </div>
             </div>
         </div>
-
         <script>
             const { createApp, ref, computed } = Vue;
 
@@ -617,13 +520,16 @@
                     // ============================================
                     // LOGIC
                     // ============================================
-                    const deadlinePopover = ref({
+                    const dayPopover = ref({
                         visible: false,
                         x: 0,
                         y: 0,
-                        date: "",
-                        label: "",
+                        title: "",
+                        dates: "",
+                        description: "",
                         color: "",
+                        deadline: null,
+                        deadlineColor: "",
                     });
 
                     const activePhase = ref(null);
@@ -718,47 +624,30 @@
                     }
 
                     function showTooltip(event, dayIndex) {
-                        const date = getDateForDay(dayIndex);
                         const phase = getPhaseForDay(dayIndex);
                         const deadline = isDeadline(dayIndex);
 
-                        // Show deadline popover only for deadline days
-                        if (deadline) {
-                            const months = [
-                                "Jan",
-                                "Fev",
-                                "Mar",
-                                "Abr",
-                                "Mai",
-                                "Jun",
-                                "Jul",
-                                "Ago",
-                                "Set",
-                                "Out",
-                                "Nov",
-                                "Dez",
-                            ];
-                            deadlinePopover.value = {
+                        if (phase) {
+                            dayPopover.value = {
                                 visible: true,
                                 x: event.clientX + 15,
                                 y: event.clientY + 15,
-                                date: `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`,
-                                label: deadline.label,
-                                color:
-                                    deadline.type === "hard"
-                                        ? "var(--deadline-hard)"
-                                        : "var(--deadline-soft)",
+                                title: phase.label,
+                                dates: `${formatShortDate(phase.start)} → ${formatShortDate(phase.end)} · ${getPhaseDuration(phase)}`,
+                                description: phase.description,
+                                color: phase.color,
+                                deadline: deadline ? `⚠ ${deadline.label}` : null,
+                                deadlineColor: deadline ? (deadline.type === "hard" ? "var(--deadline-hard)" : "var(--deadline-soft)") : "",
                             };
                         } else {
-                            deadlinePopover.value.visible = false;
+                            dayPopover.value.visible = false;
                         }
 
-                        // Always update active phase for sidenote
                         activePhase.value = phase || null;
                     }
 
                     function hideTooltip() {
-                        deadlinePopover.value.visible = false;
+                        dayPopover.value.visible = false;
                         activePhase.value = null;
                     }
 
@@ -797,7 +686,7 @@
                         selectedVersionDate,
                         phases,
                         deadlines,
-                        deadlinePopover,
+                        dayPopover,
                         activePhase,
                         getDayIndex,
                         getDayOfMonth,
