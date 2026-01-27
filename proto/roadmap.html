@@ -1,505 +1,815 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project Timeline Grid</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <style>
-    :root {
-      --bg-primary: #e8e8e3;
-      --bg-secondary: #f0f0eb;
-      --bg-tertiary: #dcdcd7;
-      --border-color: #d0d0c8;
-      --text-primary: #1a1a1a;
-      --text-secondary: #555;
-      --text-muted: #999;
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Project Timeline Grid</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+        <style>
+            :root {
+                --bg-primary: #e8e8e3;
+                --bg-secondary: #f0f0eb;
+                --bg-tertiary: #dcdcd7;
+                --border-color: #d0d0c8;
+                --text-primary: #1a1a1a;
+                --text-secondary: #555;
+                --text-muted: #999;
 
-      /* Status colors */
-      --deadline-hard: #d93636;
-      --deadline-soft: #e67e22;
-      --today: #00aa55;
-    }
+                /* Status colors */
+                --deadline-hard: #d93636;
+                --deadline-soft: #e67e22;
+                --today: #00aa55;
+            }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
 
-    body {
-      background-color: var(--bg-primary);
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M40 0v40M0 40h40' stroke='%23b8c5cc' stroke-width='0.5'/%3E%3Cpath d='M20 0v40M0 20h40' stroke='%23cdd7dc' stroke-width='0.3'/%3E%3C/svg%3E");
-      background-size: 40px 40px;
-      color: var(--text-primary);
-      font-family: 'JetBrains Mono', monospace;
-      min-height: 100vh;
-      padding: 2rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
+            body {
+                background-color: var(--bg-primary);
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M40 0v40M0 40h40' stroke='%23b8c5cc' stroke-width='0.5'/%3E%3Cpath d='M20 0v40M0 20h40' stroke='%23cdd7dc' stroke-width='0.3'/%3E%3C/svg%3E");
+                background-size: 40px 40px;
+                color: var(--text-primary);
+                font-family: "JetBrains Mono", monospace;
+                min-height: 100vh;
+                padding: 2rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
 
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+            .container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
 
-    .header {
-      margin-bottom: 2rem;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 1.5rem;
-    }
+            .main-content {
+                display: flex;
+                align-items: flex-start;
+                gap: 3rem;
+            }
 
-    .header h1 {
-      font-family: 'Space Mono', monospace;
-      font-size: 1.5rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 0.5rem;
-      text-transform: uppercase;
-    }
+            .header {
+                margin-bottom: 2rem;
+                border-bottom: 1px solid var(--border-color);
+                padding-bottom: 1.5rem;
+            }
 
-    .header .subtitle {
-      color: var(--text-secondary);
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
+            .header h1 {
+                font-family: "Space Mono", monospace;
+                font-size: 1.5rem;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+                margin-bottom: 0.5rem;
+                text-transform: uppercase;
+            }
 
-    .version-selector {
-      margin-top: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+            .header .subtitle {
+                color: var(--text-secondary);
+                font-size: 0.75rem;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+            }
 
-    .version-selector label {
-      font-size: 0.7rem;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+            .version-selector {
+                margin-top: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
 
-    .version-selector select {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      padding: 0.4rem 0.6rem;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      cursor: pointer;
-    }
+            .version-selector label {
+                font-size: 0.7rem;
+                color: var(--text-secondary);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
 
-    .version-selector select:hover {
-      border-color: var(--text-secondary);
-    }
+            .version-selector select {
+                font-family: "JetBrains Mono", monospace;
+                font-size: 0.75rem;
+                padding: 0.4rem 0.6rem;
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                color: var(--text-primary);
+                cursor: pointer;
+            }
 
-    .timeline-grid {
-      display: flex;
-      flex-direction: column;
-      gap: clamp(3px, 0.5vw, 6px);
-    }
+            .version-selector select:hover {
+                border-color: var(--text-secondary);
+            }
 
-    .week-row {
-      display: flex;
-      align-items: center;
-      gap: 0;
-    }
+            .timeline-grid {
+                display: flex;
+                flex-direction: column;
+                gap: clamp(3px, 0.5vw, 6px);
+            }
 
-    .week-label {
-      width: clamp(36px, 4vw, 56px);
-      font-size: clamp(0.6rem, 0.9vw, 0.8rem);
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      flex-shrink: 0;
-    }
+            .week-row {
+                display: flex;
+                align-items: center;
+                gap: 0;
+            }
 
-    .week-label .week-num {
-      color: var(--text-secondary);
-      font-weight: 600;
-    }
+            .week-label {
+                width: clamp(36px, 4vw, 56px);
+                font-size: clamp(0.6rem, 0.9vw, 0.8rem);
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                flex-shrink: 0;
+            }
 
-    .days-container {
-      display: flex;
-      gap: clamp(2px, 0.3vw, 4px);
-    }
+            .week-label .week-num {
+                color: var(--text-secondary);
+                font-weight: 600;
+            }
 
-    .week-separator {
-      width: clamp(6px, 1vw, 12px);
-      flex-shrink: 0;
-    }
+            .days-container {
+                display: flex;
+                gap: clamp(2px, 0.3vw, 4px);
+            }
 
-    .day-cell {
-      width: clamp(28px, 4vw, 48px);
-      height: clamp(28px, 4vw, 48px);
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      cursor: pointer;
-      transition: all 0.15s ease;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+            .week-separator {
+                width: clamp(6px, 1vw, 12px);
+                flex-shrink: 0;
+            }
 
-    .day-cell:hover {
-      border-color: var(--text-secondary);
-      transform: scale(1.1);
-      z-index: 10;
-    }
+            .day-cell {
+                width: clamp(28px, 4vw, 48px);
+                height: clamp(28px, 4vw, 48px);
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border-color);
+                cursor: pointer;
+                transition: all 0.15s ease;
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-    .day-cell.today {
-      border: 2px solid var(--today);
-      box-shadow: 0 0 6px rgba(0, 170, 85, 0.4);
-    }
+            .day-cell:hover {
+                border-color: var(--text-secondary);
+                transform: scale(1.1);
+                z-index: 10;
+            }
 
-    .day-cell.deadline-hard {
-      border: 3px solid var(--deadline-hard);
-      box-shadow: 0 0 6px rgba(217, 54, 54, 0.4);
-    }
+            .day-cell.phase-active {
+                box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.15);
+            }
 
-    .day-cell.deadline-soft {
-      border: 3px solid var(--deadline-soft);
-      box-shadow: 0 0 6px rgba(230, 126, 34, 0.4);
-    }
+            .day-cell.deadline-hard {
+                border: 3px solid var(--deadline-hard);
+                box-shadow: 0 0 6px rgba(217, 54, 54, 0.4);
+            }
 
-    .day-cell.today {
-      border: 3px solid var(--today);
-      box-shadow: 0 0 8px rgba(0, 170, 85, 0.5);
-      animation: pulse-today 2s ease-in-out infinite;
-    }
+            .day-cell.deadline-soft {
+                border: 3px solid var(--deadline-soft);
+                box-shadow: 0 0 6px rgba(230, 126, 34, 0.4);
+            }
 
-    @keyframes pulse-today {
-      0%, 100% { box-shadow: 0 0 8px rgba(0, 170, 85, 0.5); }
-      50% { box-shadow: 0 0 16px rgba(0, 170, 85, 0.8); }
-    }
+            .day-cell.today {
+                border: 3px solid var(--today);
+                box-shadow: 0 0 8px rgba(0, 170, 85, 0.5);
+                animation: pulse-today 2s ease-in-out infinite;
+            }
 
-    .day-cell.past {
-      opacity: 0.6;
-    }
+            @keyframes pulse-today {
+                0%,
+                100% {
+                    box-shadow: 0 0 8px rgba(0, 170, 85, 0.5);
+                }
+                50% {
+                    box-shadow: 0 0 16px rgba(0, 170, 85, 0.8);
+                }
+            }
 
-    .day-cell.past::before,
-    .day-cell.past::after {
-      content: '';
-      position: absolute;
-      height: 2px;
-      background: rgba(0, 0, 0, 0.25);
-      border-radius: 1px;
-      pointer-events: none;
-      width: 0;
-      animation: draw-x 0.15s ease-out forwards;
-      animation-delay: calc(var(--day-index) * 20ms);
-    }
+            .day-cell.past {
+                opacity: 0.6;
+            }
 
-    .day-cell.past::before {
-      transform: rotate(45deg);
-    }
+            .day-cell.past::before,
+            .day-cell.past::after {
+                content: "";
+                position: absolute;
+                height: 2px;
+                background: rgba(0, 0, 0, 0.25);
+                border-radius: 1px;
+                pointer-events: none;
+                width: 0;
+                animation: draw-x 0.15s ease-out forwards;
+                animation-delay: calc(var(--day-index) * 20ms);
+            }
 
-    .day-cell.past::after {
-      transform: rotate(-45deg);
-      animation-delay: calc(var(--day-index) * 20ms + 75ms);
-    }
+            .day-cell.past::before {
+                transform: rotate(45deg);
+            }
 
-    @keyframes draw-x {
-      from { width: 0; }
-      to { width: 70%; }
-    }
+            .day-cell.past::after {
+                transform: rotate(-45deg);
+                animation-delay: calc(var(--day-index) * 20ms + 75ms);
+            }
 
-    .day-cell .day-number {
-      font-size: clamp(0.6rem, 1vw, 0.85rem);
-      font-weight: 600;
-      color: rgba(0, 0, 0, 0.5);
-    }
+            @keyframes draw-x {
+                from {
+                    width: 0;
+                }
+                to {
+                    width: 70%;
+                }
+            }
 
-    /* Tooltip */
-    .tooltip {
-      position: fixed;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      padding: 0.75rem 1rem;
-      font-size: 0.7rem;
-      pointer-events: none;
-      z-index: 1000;
-      max-width: 250px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    }
+            .day-cell .day-number {
+                font-size: clamp(0.6rem, 1vw, 0.85rem);
+                font-weight: 600;
+                color: rgba(0, 0, 0, 0.5);
+            }
 
-    .tooltip .tooltip-date {
-      color: var(--text-primary);
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
+            /* Deadline Popover */
+            .deadline-popover {
+                position: fixed;
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                padding: 0.6rem 0.8rem;
+                font-size: 0.7rem;
+                pointer-events: none;
+                z-index: 1000;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            }
 
-    .tooltip .tooltip-phase {
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-size: 0.6rem;
-    }
+            .deadline-popover::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 3px;
+                background: var(--deadline-color, var(--deadline-soft));
+            }
 
-    .tooltip .tooltip-notes {
-      margin-top: 0.5rem;
-      color: var(--text-secondary);
-      font-style: italic;
-    }
+            .deadline-popover-date {
+                font-size: 0.6rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                margin-bottom: 0.25rem;
+            }
 
-  </style>
-</head>
-<body>
-  <div id="app">
-    <div class="container">
-      <div class="header">
-        <h1>Cronograma // Playfast</h1>
-        <div class="subtitle">Semana 1 começa em 2 de Fev, 2026 — 30 semanas até entrega</div>
-        <div class="version-selector">
-          <label for="version">Versão:</label>
-          <select id="version" v-model="selectedVersionDate">
-            <option v-for="v in roadmapVersions" :key="v.date" :value="v.date">
-              {{ v.date }}
-            </option>
-          </select>
-        </div>
-      </div>
+            .deadline-popover-label {
+                color: var(--text-primary);
+                font-weight: 600;
+            }
 
+            /* Phase Description Panel - Sidenote Style */
+            .phase-panel {
+                width: 280px;
+                padding: 1rem 1rem 1rem 1.25rem;
+                border: 1px dashed var(--text-primary);
+                border-left: 4px solid var(--phase-accent, var(--border-color));
+                background: var(--bg-secondary);
+                opacity: 0;
+                transform: translateX(8px);
+                transition:
+                    opacity 0.2s ease,
+                    transform 0.2s ease,
+                    border-color 0.2s ease;
+                align-self: center;
+            }
 
-      <div class="timeline-grid">
-        <div class="week-row" v-for="rowIndex in Math.ceil(totalWeeks / 2)" :key="rowIndex">
-          <div class="week-label">
-            <span class="week-num">W{{ String((rowIndex - 1) * 2 + 1).padStart(2, '0') }}</span>
-          </div>
+            .phase-panel.visible {
+                opacity: 1;
+                transform: translateX(0);
+            }
 
-          <div class="days-container">
-            <!-- First week of the row (Mon-Fri) -->
-            <template v-for="dayOffset in 5" :key="'w1-' + dayOffset">
-              <div
-                class="day-cell"
-                :class="getDayClasses(getDayIndex(rowIndex, 1, dayOffset))"
-                :style="getDayStyle(getDayIndex(rowIndex, 1, dayOffset))"
-                @mouseenter="showTooltip($event, getDayIndex(rowIndex, 1, dayOffset))"
-                @mouseleave="hideTooltip"
-              >
-                <span class="day-number">{{ getDayOfMonth(getDayIndex(rowIndex, 1, dayOffset)) }}</span>
-              </div>
-            </template>
+            .phase-panel-label {
+                font-size: 0.6rem;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--text-muted);
+                margin-bottom: 0.35rem;
+            }
 
-            <div class="week-separator"></div>
+            .phase-panel-title {
+                font-family: "Space Mono", monospace;
+                font-size: 0.8rem;
+                font-weight: 700;
+                color: var(--text-primary);
+                margin-bottom: 0.6rem;
+                line-height: 1.35;
+            }
 
-            <!-- Second week of the row (if exists) -->
-            <template v-if="(rowIndex - 1) * 2 + 2 <= totalWeeks">
-              <template v-for="dayOffset in 5" :key="'w2-' + dayOffset">
-                <div
-                  class="day-cell"
-                  :class="getDayClasses(getDayIndex(rowIndex, 2, dayOffset))"
-                  :style="getDayStyle(getDayIndex(rowIndex, 2, dayOffset))"
-                  @mouseenter="showTooltip($event, getDayIndex(rowIndex, 2, dayOffset))"
-                  @mouseleave="hideTooltip"
-                >
-                  <span class="day-number">{{ getDayOfMonth(getDayIndex(rowIndex, 2, dayOffset)) }}</span>
+            .phase-panel-dates {
+                font-size: 0.65rem;
+                color: var(--text-secondary);
+                margin-bottom: 0.75rem;
+            }
+
+            .phase-panel-dates .date-separator {
+                color: var(--text-muted);
+                margin: 0 0.25rem;
+            }
+
+            .phase-panel-duration {
+                display: block;
+                font-size: 0.6rem;
+                color: var(--text-muted);
+                margin-top: 0.25rem;
+                font-style: italic;
+            }
+
+            .phase-panel-description {
+                font-size: 0.7rem;
+                line-height: 1.55;
+                color: var(--text-secondary);
+                white-space: pre-line;
+            }
+
+            .phase-panel-description:empty::before {
+                content: "Sem descrição.";
+                font-style: italic;
+                color: var(--text-muted);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app">
+            <div class="container">
+                <div class="header">
+                    <h1>Cronograma // Playfast</h1>
+                    <div class="subtitle">
+                        Semana 1 começa em 2 de Fev, 2026 — 30 semanas até
+                        entrega
+                    </div>
+                    <div class="version-selector">
+                        <label for="version">Versão:</label>
+                        <select id="version" v-model="selectedVersionDate">
+                            <option
+                                v-for="v in roadmapVersions"
+                                :key="v.date"
+                                :value="v.date"
+                            >
+                                {{ v.date }}
+                            </option>
+                        </select>
+                    </div>
                 </div>
-              </template>
-            </template>
-          </div>
 
+                <div class="main-content">
+                    <div class="timeline-grid">
+                        <div
+                            class="week-row"
+                            v-for="rowIndex in Math.ceil(totalWeeks / 2)"
+                            :key="rowIndex"
+                        >
+                            <div class="week-label">
+                                <span class="week-num"
+                                    >W{{ String((rowIndex - 1) * 2 +
+                                    1).padStart(2, '0') }}</span
+                                >
+                            </div>
+
+                            <div class="days-container">
+                                <!-- First week of the row (Mon-Fri) -->
+                                <template
+                                    v-for="dayOffset in 5"
+                                    :key="'w1-' + dayOffset"
+                                >
+                                    <div
+                                        class="day-cell"
+                                        :class="getDayClasses(getDayIndex(rowIndex, 1, dayOffset))"
+                                        :style="getDayStyle(getDayIndex(rowIndex, 1, dayOffset))"
+                                        @mouseenter="showTooltip($event, getDayIndex(rowIndex, 1, dayOffset))"
+                                        @mouseleave="hideTooltip"
+                                    >
+                                        <span class="day-number"
+                                            >{{
+                                            getDayOfMonth(getDayIndex(rowIndex,
+                                            1, dayOffset)) }}</span
+                                        >
+                                    </div>
+                                </template>
+
+                                <div class="week-separator"></div>
+
+                                <!-- Second week of the row (if exists) -->
+                                <template
+                                    v-if="(rowIndex - 1) * 2 + 2 <= totalWeeks"
+                                >
+                                    <template
+                                        v-for="dayOffset in 5"
+                                        :key="'w2-' + dayOffset"
+                                    >
+                                        <div
+                                            class="day-cell"
+                                            :class="getDayClasses(getDayIndex(rowIndex, 2, dayOffset))"
+                                            :style="getDayStyle(getDayIndex(rowIndex, 2, dayOffset))"
+                                            @mouseenter="showTooltip($event, getDayIndex(rowIndex, 2, dayOffset))"
+                                            @mouseleave="hideTooltip"
+                                        >
+                                            <span class="day-number"
+                                                >{{
+                                                getDayOfMonth(getDayIndex(rowIndex,
+                                                2, dayOffset)) }}</span
+                                            >
+                                        </div>
+                                    </template>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phase Description Panel - Sidenote -->
+                    <div
+                        class="phase-panel"
+                        :class="{ visible: activePhase }"
+                        :style="{ '--phase-accent': activePhase?.color }"
+                    >
+                        <div class="phase-panel-label">Fase</div>
+                        <div class="phase-panel-title">
+                            {{ activePhase?.label }}
+                        </div>
+                        <div class="phase-panel-dates">
+                            <span
+                                >{{ formatShortDate(activePhase?.start) }}</span
+                            >
+                            <span class="date-separator">→</span>
+                            <span>{{ formatShortDate(activePhase?.end) }}</span>
+                            <span class="phase-panel-duration"
+                                >{{ getPhaseDuration(activePhase) }}</span
+                            >
+                        </div>
+                        <div class="phase-panel-description">
+                            {{ activePhase?.description }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deadline Popover -->
+                <div
+                    class="deadline-popover"
+                    v-if="deadlinePopover.visible"
+                    :style="{
+          left: deadlinePopover.x + 'px',
+          top: deadlinePopover.y + 'px',
+          '--deadline-color': deadlinePopover.color
+        }"
+                >
+                    <div class="deadline-popover-date">
+                        {{ deadlinePopover.date }}
+                    </div>
+                    <div class="deadline-popover-label">
+                        {{ deadlinePopover.label }}
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
 
-      <!-- Tooltip -->
-      <div
-        class="tooltip"
-        v-if="tooltip.visible"
-        :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
-      >
-        <div class="tooltip-date">{{ tooltip.date }}</div>
-        <div class="tooltip-phase" v-if="tooltip.phase">{{ tooltip.phase }}</div>
-        <div class="tooltip-notes" v-if="tooltip.notes">{{ tooltip.notes }}</div>
-      </div>
-    </div>
-  </div>
+        <script>
+            const { createApp, ref, computed } = Vue;
 
-  <script>
-    const { createApp, ref, computed } = Vue;
+            createApp({
+                setup() {
+                    const startDate = new Date(2026, 1, 2); // Feb 2, 2026 (Monday)
+                    const totalWeeks = 30;
 
-    createApp({
-      setup() {
-        const startDate = new Date(2026, 1, 2); // Feb 2, 2026 (Monday)
-        const totalWeeks = 30;
+                    // ============================================
+                    // CONFIGURATION - ROADMAP VERSIONS
+                    // ============================================
 
-        // ============================================
-        // CONFIGURATION - ROADMAP VERSIONS
-        // ============================================
+                    const roadmapVersions = ref([
+                        {
+                            date: "2026-01-26",
+                            phases: [],
+                            deadlines: [],
+                        },
+                        {
+                            date: "2026-01-27",
+                            phases: [
+                                {
+                                    label: "Fim de Sprint",
+                                    start: new Date(2026, 1, 2),
+                                    end: new Date(2026, 1, 8),
+                                    color: "#d4d4d4",
+                                    description:
+                                        "Finalização do sprint atual e preparação para o novo ciclo de desenvolvimento.",
+                                },
+                                {
+                                    label: "Limpeza Inicial",
+                                    start: new Date(2026, 1, 9),
+                                    end: new Date(2026, 2, 1),
+                                    color: "#b8d4e3",
+                                    description:
+                                        "• Migração para Github\n• Implementação de password manager\n• Refatoração e organização do código base\n• Remoção de débitos técnicos\n• Limpeza de APIs antigas e tabelas não usadas",
+                                },
+                                {
+                                    label: "Stripe/GetNet Derisk",
+                                    start: new Date(2026, 2, 2),
+                                    end: new Date(2026, 2, 8),
+                                    color: "#e8b8d4",
+                                    description:
+                                        "• Análise de riscos técnicos das integrações de pagamento\n• POCs e validações de viabilidade\n• Warmup das contas e configurações com dados e contratos necessários",
+                                },
+                                {
+                                    label: "Limpeza Agendamento/Usuário/Dependentes",
+                                    start: new Date(2026, 2, 9),
+                                    end: new Date(2026, 3, 12),
+                                    color: "#c9e4ca",
+                                    description:
+                                        "• Refatoração dos módulos de agendamento, usuários e dependentes\n• Padronização de APIs",
+                                },
+                                {
+                                    label: "Limpeza Produtos/Pagamentos/Benefícios",
+                                    start: new Date(2026, 3, 13),
+                                    end: new Date(2026, 4, 17),
+                                    color: "#f0e6b8",
+                                    description:
+                                        "• Reestruturação dos sistemas de produtos, pagamentos e benefícios\n• Preparação para novas integrações",
+                                },
+                                {
+                                    label: "Stripe",
+                                    start: new Date(2026, 4, 18),
+                                    end: new Date(2026, 5, 12),
+                                    color: "#a89fe8",
+                                    description:
+                                        "Implementação completa da integração Stripe.",
+                                },
+                                {
+                                    label: "Suporte Stripe",
+                                    start: new Date(2026, 6, 27),
+                                    end: new Date(2026, 6, 31),
+                                    color: "#c9c4f0",
+                                    description:
+                                        "Estabilização e suporte pós-lançamento da integração Stripe.",
+                                },
+                                {
+                                    label: "GetNet",
+                                    start: new Date(2026, 5, 15),
+                                    end: new Date(2026, 6, 24),
+                                    color: "#ffb899",
+                                    description:
+                                        "• Implementação da integração GetNet\n• Motor de recorrência",
+                                },
+                                {
+                                    label: "Suporte GetNet",
+                                    start: new Date(2026, 7, 24),
+                                    end: new Date(2026, 7, 28),
+                                    color: "#ffd9cc",
+                                    description:
+                                        "Estabilização e suporte pós-lançamento da integração GetNet.",
+                                },
+                            ],
+                            deadlines: [
+                                {
+                                    date: new Date(2026, 2, 6),
+                                    type: "soft",
+                                    label: "Refinamento de Roadmap",
+                                },
+                                {
+                                    date: new Date(2026, 2, 27),
+                                    type: "soft",
+                                    label: "Refinamento de Roadmap",
+                                },
+                                {
+                                    date: new Date(2026, 4, 1),
+                                    type: "soft",
+                                    label: "Refinamento de Roadmap",
+                                },
+                                {
+                                    date: new Date(2026, 6, 27),
+                                    type: "hard",
+                                    label: "Entrega Stripe",
+                                },
+                                {
+                                    date: new Date(2026, 7, 24),
+                                    type: "soft",
+                                    label: "Entrega GetNet",
+                                },
+                            ],
+                        },
+                        // Add new versions here after each refinement
+                        // { date: '2026-03-06', phases: [...], deadlines: [...] },
+                    ]);
 
-        const roadmapVersions = ref([
-          {
-            date: '2026-01-26',
-            phases: [],
-            deadlines: []
-          },
-          {
-            date: '2026-01-27',
-            phases: [
-              { label: 'Fim de Sprint', start: new Date(2026, 1, 2), end: new Date(2026, 1, 8), color: '#d4d4d4' },
-              { label: 'Limpeza Inicial', start: new Date(2026, 1, 9), end: new Date(2026, 2, 1), color: '#b8d4e3' },
-              { label: 'Stripe/GetNet Derisk', start: new Date(2026, 2, 2), end: new Date(2026, 2, 8), color: '#e8b8d4' },
-              { label: 'Limpeza Agendamento/Usuário/Dependentes', start: new Date(2026, 2, 9), end: new Date(2026, 3, 12), color: '#c9e4ca' },
-              { label: 'Limpeza Produtos/Pagamentos/Benefícios', start: new Date(2026, 3, 13), end: new Date(2026, 4, 17), color: '#f0e6b8' },
-              { label: 'Stripe', start: new Date(2026, 4, 25), end: new Date(2026, 5, 19), color: '#a89fe8' },
-              { label: 'Suporte Stripe', start: new Date(2026, 6, 27), end: new Date(2026, 6, 31), color: '#c9c4f0' },
-              { label: 'GetNet', start: new Date(2026, 5, 22), end: new Date(2026, 6, 17), color: '#ffb899' },
-              { label: 'Suporte GetNet', start: new Date(2026, 7, 24), end: new Date(2026, 7, 28), color: '#ffd9cc' },
-            ],
-            deadlines: [
-              { date: new Date(2026, 2, 6), type: 'soft', label: 'Refinamento de Roadmap' },
-              { date: new Date(2026, 2, 27), type: 'soft', label: 'Refinamento de Roadmap' },
-              { date: new Date(2026, 4, 8), type: 'soft', label: 'Refinamento de Roadmap' },
-              { date: new Date(2026, 6, 27), type: 'hard', label: 'Entrega Stripe' },
-              { date: new Date(2026, 7, 24), type: 'soft', label: 'Entrega GetNet' },
-            ]
-          },
-          // Add new versions here after each refinement
-          // { date: '2026-03-06', phases: [...], deadlines: [...] },
-        ]);
+                    const selectedVersionDate = ref("2026-01-27");
 
-        const selectedVersionDate = ref('2026-01-27');
+                    const currentVersion = computed(
+                        () =>
+                            roadmapVersions.value.find(
+                                (v) => v.date === selectedVersionDate.value,
+                            ) || roadmapVersions.value[0],
+                    );
 
-        const currentVersion = computed(() =>
-          roadmapVersions.value.find(v => v.date === selectedVersionDate.value) || roadmapVersions.value[0]
-        );
+                    const phases = computed(() => currentVersion.value.phases);
+                    const deadlines = computed(
+                        () => currentVersion.value.deadlines,
+                    );
 
-        const phases = computed(() => currentVersion.value.phases);
-        const deadlines = computed(() => currentVersion.value.deadlines);
+                    // ============================================
+                    // LOGIC
+                    // ============================================
+                    const deadlinePopover = ref({
+                        visible: false,
+                        x: 0,
+                        y: 0,
+                        date: "",
+                        label: "",
+                        color: "",
+                    });
 
-        // ============================================
-        // LOGIC
-        // ============================================
-        const tooltip = ref({
-          visible: false,
-          x: 0,
-          y: 0,
-          date: '',
-          phase: '',
-          notes: ''
-        });
+                    const activePhase = ref(null);
 
-        function getDayIndex(rowIndex, weekInRow, dayOffset) {
-          const weekNumber = (rowIndex - 1) * 2 + weekInRow;
-          return (weekNumber - 1) * 5 + dayOffset;
-        }
+                    function getDayIndex(rowIndex, weekInRow, dayOffset) {
+                        const weekNumber = (rowIndex - 1) * 2 + weekInRow;
+                        return (weekNumber - 1) * 5 + dayOffset;
+                    }
 
-        function getDateForDay(businessDayIndex) {
-          // Convert business day index to calendar date (skipping weekends)
-          const weeksComplete = Math.floor((businessDayIndex - 1) / 5);
-          const dayInWeek = ((businessDayIndex - 1) % 5);
-          const date = new Date(startDate);
-          date.setDate(date.getDate() + weeksComplete * 7 + dayInWeek);
-          return date;
-        }
+                    function getDateForDay(businessDayIndex) {
+                        // Convert business day index to calendar date (skipping weekends)
+                        const weeksComplete = Math.floor(
+                            (businessDayIndex - 1) / 5,
+                        );
+                        const dayInWeek = (businessDayIndex - 1) % 5;
+                        const date = new Date(startDate);
+                        date.setDate(
+                            date.getDate() + weeksComplete * 7 + dayInWeek,
+                        );
+                        return date;
+                    }
 
-        function getDayOfMonth(dayIndex) {
-          return getDateForDay(dayIndex).getDate();
-        }
+                    function getDayOfMonth(dayIndex) {
+                        return getDateForDay(dayIndex).getDate();
+                    }
 
-        function getPhaseForDay(dayIndex) {
-          const date = getDateForDay(dayIndex);
-          return phases.value.find(p => date >= p.start && date <= p.end);
-        }
+                    function getPhaseForDay(dayIndex) {
+                        const date = getDateForDay(dayIndex);
+                        return phases.value.find(
+                            (p) => date >= p.start && date <= p.end,
+                        );
+                    }
 
-        function isDeadline(dayIndex) {
-          const date = getDateForDay(dayIndex);
-          return deadlines.value.find(d =>
-            d.date.getFullYear() === date.getFullYear() &&
-            d.date.getMonth() === date.getMonth() &&
-            d.date.getDate() === date.getDate()
-          );
-        }
+                    function isDeadline(dayIndex) {
+                        const date = getDateForDay(dayIndex);
+                        return deadlines.value.find(
+                            (d) =>
+                                d.date.getFullYear() === date.getFullYear() &&
+                                d.date.getMonth() === date.getMonth() &&
+                                d.date.getDate() === date.getDate(),
+                        );
+                    }
 
-        // Current day
-        const today = new Date();
+                    // Current day
+                    const today = new Date();
 
-        function isPast(dayIndex) {
-          const date = getDateForDay(dayIndex);
-          return date < today;
-        }
+                    function isPast(dayIndex) {
+                        const date = getDateForDay(dayIndex);
+                        return date < today;
+                    }
 
-        function isToday(dayIndex) {
-          const date = getDateForDay(dayIndex);
-          return date.getFullYear() === today.getFullYear() &&
-                 date.getMonth() === today.getMonth() &&
-                 date.getDate() === today.getDate();
-        }
+                    function isToday(dayIndex) {
+                        const date = getDateForDay(dayIndex);
+                        return (
+                            date.getFullYear() === today.getFullYear() &&
+                            date.getMonth() === today.getMonth() &&
+                            date.getDate() === today.getDate()
+                        );
+                    }
 
-        function getDayClasses(dayIndex) {
-          const classes = [];
-          const deadline = isDeadline(dayIndex);
+                    function getDayClasses(dayIndex) {
+                        const classes = [];
+                        const deadline = isDeadline(dayIndex);
+                        const phase = getPhaseForDay(dayIndex);
 
-          if (deadline) {
-            classes.push(`deadline-${deadline.type}`);
-          }
+                        if (deadline) {
+                            classes.push(`deadline-${deadline.type}`);
+                        }
 
-          if (isPast(dayIndex)) {
-            classes.push('past');
-          }
+                        if (isPast(dayIndex)) {
+                            classes.push("past");
+                        }
 
-          if (isToday(dayIndex)) {
-            classes.push('today');
-          }
+                        if (isToday(dayIndex)) {
+                            classes.push("today");
+                        }
 
-          return classes;
-        }
+                        if (phase && activePhase.value && phase.label === activePhase.value.label) {
+                            classes.push("phase-active");
+                        }
 
-        function getDayStyle(dayIndex) {
-          const style = { '--day-index': dayIndex };
-          const phase = getPhaseForDay(dayIndex);
-          if (phase) {
-            style.background = phase.color;
-          }
-          return style;
-        }
+                        return classes;
+                    }
 
-        function showTooltip(event, dayIndex) {
-          const date = getDateForDay(dayIndex);
-          const phase = getPhaseForDay(dayIndex);
-          const deadline = isDeadline(dayIndex);
+                    function getDayStyle(dayIndex) {
+                        const style = { "--day-index": dayIndex };
+                        const phase = getPhaseForDay(dayIndex);
+                        if (phase) {
+                            style.background = phase.color;
+                        }
+                        return style;
+                    }
 
-          const weekday = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][date.getDay()];
-          const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                    function showTooltip(event, dayIndex) {
+                        const date = getDateForDay(dayIndex);
+                        const phase = getPhaseForDay(dayIndex);
+                        const deadline = isDeadline(dayIndex);
 
-          tooltip.value = {
-            visible: true,
-            x: event.clientX + 15,
-            y: event.clientY + 15,
-            date: `${weekday}, ${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()}`,
-            phase: phase ? phase.label : null,
-            notes: deadline ? `⚠ ${deadline.label}` : null
-          };
-        }
+                        // Show deadline popover only for deadline days
+                        if (deadline) {
+                            const months = [
+                                "Jan",
+                                "Fev",
+                                "Mar",
+                                "Abr",
+                                "Mai",
+                                "Jun",
+                                "Jul",
+                                "Ago",
+                                "Set",
+                                "Out",
+                                "Nov",
+                                "Dez",
+                            ];
+                            deadlinePopover.value = {
+                                visible: true,
+                                x: event.clientX + 15,
+                                y: event.clientY + 15,
+                                date: `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`,
+                                label: deadline.label,
+                                color:
+                                    deadline.type === "hard"
+                                        ? "var(--deadline-hard)"
+                                        : "var(--deadline-soft)",
+                            };
+                        } else {
+                            deadlinePopover.value.visible = false;
+                        }
 
-        function hideTooltip() {
-          tooltip.value.visible = false;
-        }
+                        // Always update active phase for sidenote
+                        activePhase.value = phase || null;
+                    }
 
-        return {
-          totalWeeks,
-          roadmapVersions,
-          selectedVersionDate,
-          phases,
-          deadlines,
-          tooltip,
-          getDayIndex,
-          getDayOfMonth,
-          getDayClasses,
-          getDayStyle,
-          showTooltip,
-          hideTooltip
-        };
-      }
-    }).mount('#app');
-  </script>
-</body>
+                    function hideTooltip() {
+                        deadlinePopover.value.visible = false;
+                        activePhase.value = null;
+                    }
+
+                    function formatShortDate(date) {
+                        if (!date) return "";
+                        const months = [
+                            "Jan",
+                            "Fev",
+                            "Mar",
+                            "Abr",
+                            "Mai",
+                            "Jun",
+                            "Jul",
+                            "Ago",
+                            "Set",
+                            "Out",
+                            "Nov",
+                            "Dez",
+                        ];
+                        return `${date.getDate()} ${months[date.getMonth()]}`;
+                    }
+
+                    function getPhaseDuration(phase) {
+                        if (!phase) return "";
+                        const diffTime = Math.abs(phase.end - phase.start);
+                        const diffDays =
+                            Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                        const weeks = Math.round(diffDays / 7);
+                        if (weeks === 0) return `${diffDays}d`;
+                        return `~${weeks}sem`;
+                    }
+
+                    return {
+                        totalWeeks,
+                        roadmapVersions,
+                        selectedVersionDate,
+                        phases,
+                        deadlines,
+                        deadlinePopover,
+                        activePhase,
+                        getDayIndex,
+                        getDayOfMonth,
+                        getDayClasses,
+                        getDayStyle,
+                        showTooltip,
+                        hideTooltip,
+                        formatShortDate,
+                        getPhaseDuration,
+                    };
+                },
+            }).mount("#app");
+        </script>
+    </body>
 </html>
