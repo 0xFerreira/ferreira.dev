@@ -292,6 +292,19 @@
                                     {{ v.date }}
                                 </option>
                             </select>
+
+                            <template v-if="tracks.length > 1">
+                                <label for="track">Track:</label>
+                                <select id="track" v-model="selectedTrackIndex">
+                                    <option
+                                        v-for="(t, i) in tracks"
+                                        :key="i"
+                                        :value="i"
+                                    >
+                                        {{ t.label }}
+                                    </option>
+                                </select>
+                            </template>
                         </div>
                     </div>
 
@@ -378,7 +391,7 @@
             </div>
         </div>
         <script>
-            const { createApp, ref, computed } = Vue;
+            const { createApp, ref, computed, watch } = Vue;
 
             createApp({
                 setup() {
@@ -392,12 +405,12 @@
                     const roadmapVersions = ref([
                         {
                             date: "2026-01-26",
-                            phases: [],
+                            tracks: [{ label: "Geral", phases: [] }],
                             deadlines: [],
                         },
                         {
                             date: "2026-01-27",
-                            phases: [
+                            tracks: [{ label: "Geral", phases: [
                                 {
                                     label: "Fim de Sprint",
                                     start: new Date(2026, 1, 2),
@@ -470,7 +483,7 @@
                                     description:
                                         "Estabilização e suporte pós-lançamento da integração GetNet.",
                                 },
-                            ],
+                            ]}],
                             deadlines: [
                                 {
                                     date: new Date(2026, 2, 6),
@@ -499,11 +512,99 @@
                                 },
                             ],
                         },
-                        // Add new versions here after each refinement
-                        // { date: '2026-03-06', phases: [...], deadlines: [...] },
+                        {
+                            date: "2026-02-16",
+                            tracks: [{ label: "Geral", phases: [
+                                {
+                                    label: "Fim de Sprint",
+                                    start: new Date(2026, 1, 2),
+                                    end: new Date(2026, 1, 20),
+                                    color: "#d4d4d4",
+                                    description:
+                                        "Finalização do sprint atual e preparação para o novo ciclo de desenvolvimento.",
+                                },
+                                {
+                                    label: "Limpeza Inicial",
+                                    start: new Date(2026, 1, 23),
+                                    end: new Date(2026, 2, 15),
+                                    color: "#b8d4e3",
+                                    description:
+                                        "• Migração para Github\n• Implementação de password manager\n• Refatoração e organização do código base\n• Remoção de débitos técnicos\n• Limpeza de APIs antigas e tabelas não usadas",
+                                },
+                                {
+                                    label: "Limpeza Agendamento/Usuário/Dependentes",
+                                    start: new Date(2026, 2, 16),
+                                    end: new Date(2026, 3, 19),
+                                    color: "#c9e4ca",
+                                    description:
+                                        "• Refatoração dos módulos de agendamento, usuários e dependentes\n• Padronização de APIs",
+                                },
+                                {
+                                    label: "Limpeza Produtos/Pagamentos/Benefícios",
+                                    start: new Date(2026, 3, 20),
+                                    end: new Date(2026, 4, 24),
+                                    color: "#f0e6b8",
+                                    description:
+                                        "• Reestruturação dos sistemas de produtos, pagamentos e benefícios\n• Preparação para novas integrações",
+                                },
+                            ]}, { label: "Ferreira", phases: [
+                                {
+                                    label: "Redução de custo IBM, Performance aplicação",
+                                    start: new Date(2026, 1, 2),
+                                    end: new Date(2026, 1, 20),
+                                    color: "#e8d4b8",
+                                    description:
+                                        "• Redução de custos de infraestrutura IBM\n• Otimização de performance da aplicação",
+                                },
+                                {
+                                    label: "Derisk GetNet",
+                                    start: new Date(2026, 1, 23),
+                                    end: new Date(2026, 1, 27),
+                                    color: "#e8b8d4",
+                                    description:
+                                        "• Análise de riscos técnicos da integração GetNet\n• POCs e validações de viabilidade",
+                                },
+                                {
+                                    label: "Motor de Recorrência e GetNet",
+                                    start: new Date(2026, 2, 2),
+                                    end: new Date(2026, 4, 22),
+                                    color: "#ffb899",
+                                    description:
+                                        "• Implementação do motor de recorrência\n• Integração GetNet",
+                                },
+                            ]}],
+                            deadlines: [
+                                {
+                                    date: new Date(2026, 2, 6),
+                                    type: "soft",
+                                    label: "Refinamento de Roadmap",
+                                },
+                                {
+                                    date: new Date(2026, 2, 27),
+                                    type: "soft",
+                                    label: "Refinamento de Roadmap",
+                                },
+                                {
+                                    date: new Date(2026, 4, 1),
+                                    type: "soft",
+                                    label: "Refinamento de Roadmap",
+                                },
+                                {
+                                    date: new Date(2026, 6, 27),
+                                    type: "hard",
+                                    label: "Entrega Stripe",
+                                },
+                                {
+                                    date: new Date(2026, 7, 24),
+                                    type: "soft",
+                                    label: "Entrega GetNet",
+                                },
+                            ],
+                        },
                     ]);
 
-                    const selectedVersionDate = ref("2026-01-27");
+                    const selectedVersionDate = ref("2026-02-16");
+                    const selectedTrackIndex = ref(0);
 
                     const currentVersion = computed(
                         () =>
@@ -512,10 +613,15 @@
                             ) || roadmapVersions.value[0],
                     );
 
-                    const phases = computed(() => currentVersion.value.phases);
+                    const tracks = computed(() => currentVersion.value.tracks || []);
+                    const phases = computed(() => tracks.value[selectedTrackIndex.value]?.phases || []);
                     const deadlines = computed(
                         () => currentVersion.value.deadlines,
                     );
+
+                    watch(selectedVersionDate, () => {
+                        selectedTrackIndex.value = 0;
+                    });
 
                     // ============================================
                     // LOGIC
@@ -684,6 +790,8 @@
                         totalWeeks,
                         roadmapVersions,
                         selectedVersionDate,
+                        selectedTrackIndex,
+                        tracks,
                         phases,
                         deadlines,
                         dayPopover,
