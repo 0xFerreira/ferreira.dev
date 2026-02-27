@@ -170,32 +170,35 @@
                 [-s, -s, s], [s, -s, s], [s, s, s], [-s, s, s]
             ];
             
-            // Rotate and project vertices
+            // Rotate and project vertices, keeping z for depth
             const projected = vertices.map(([vx, vy, vz]) => {
                 // Rotate around Y axis
                 let x1 = vx * Math.cos(rotY) - vz * Math.sin(rotY);
                 let z1 = vx * Math.sin(rotY) + vz * Math.cos(rotY);
-                
+
                 // Rotate around X axis
                 let y2 = vy * Math.cos(rotX) - z1 * Math.sin(rotX);
                 let z2 = vy * Math.sin(rotX) + z1 * Math.cos(rotX);
 
                 // Simple projection with clamp to prevent extreme values
                 const scale = 200 / (200 + Math.max(z2, -150));
-                return [x + x1 * scale, y + y2 * scale];
+                return [x + x1 * scale, y + y2 * scale, z2];
             });
-            
+
             // Draw edges
             const edges = [
                 [0,1], [1,2], [2,3], [3,0], // Back face
                 [4,5], [5,6], [6,7], [7,4], // Front face
                 [0,4], [1,5], [2,6], [3,7]  // Connecting edges
             ];
-            
-            ctx.strokeStyle = '#00d9ff';
+
             ctx.lineWidth = 2;
-            
+
             edges.forEach(([i, j]) => {
+                // Dim edges whose midpoint is further back
+                const avgZ = (projected[i][2] + projected[j][2]) / 2;
+                const alpha = 0.5 + 0.5 * ((s - avgZ) / (2 * s));
+                ctx.strokeStyle = `rgba(0, 217, 255, ${alpha})`;
                 ctx.beginPath();
                 ctx.moveTo(projected[i][0], projected[i][1]);
                 ctx.lineTo(projected[j][0], projected[j][1]);
