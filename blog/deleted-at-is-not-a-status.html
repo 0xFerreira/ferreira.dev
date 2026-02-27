@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>deleted_at is not a status</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/atom-one-dark.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Fira Mono', 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 4rem 2rem;
+        }
+        .container { max-width: 720px; width: 100%; }
+        h1 {
+            font-size: 2rem;
+            font-weight: 500;
+            color: #ffffff;
+            margin-bottom: 2.5rem;
+        }
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #00d9ff;
+            margin: 2.5rem 0 1rem;
+        }
+        p, li {
+            font-size: 0.95rem;
+            font-weight: 400;
+            line-height: 1.8;
+            color: #a0a0a0;
+            margin-bottom: 1rem;
+        }
+        ul { list-style: none; margin-bottom: 1.5rem; }
+        li::before { content: "— "; color: #555; }
+        code {
+            background: #1a1a1a;
+            padding: 0.15rem 0.4rem;
+            border-radius: 2px;
+            font-size: 0.9em;
+            color: #e0e0e0;
+        }
+        pre {
+            border-radius: 4px;
+            margin: 1rem 0 1.5rem;
+            font-size: 0.82rem;
+            line-height: 1.6;
+        }
+        pre code,
+        pre code.hljs {
+            background: #111;
+            padding: 1.2rem;
+            display: block;
+            border: 1px solid #222;
+            border-radius: 4px;
+        }
+        pre.bad code,
+        pre.bad code.hljs {
+            border-left: 3px solid #ff4444;
+        }
+        pre.good code,
+        pre.good code.hljs {
+            border-left: 3px solid #98c379;
+        }
+        a { color: #6b6b6b; text-decoration: none; transition: color 0.2s; }
+        a:hover { color: #00d9ff; }
+        .back { margin-top: 3rem; display: block; }
+        pre.diagram {
+            background: #111;
+            border: 1px solid #222;
+            color: #888;
+            text-align: center;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>deleted_at is not a status</h1>
+
+        <p>
+            Most applications with soft deletes have a <code>deleted_at</code> column.
+            It answers one question: "should this row be invisible to normal queries?"
+            The moment you start reading it back, branching on it, or reversing it,
+            you've turned an infrastructure concern into a domain concept without giving it a proper name.
+        </p>
+
+        <h2>the asymmetry</h2>
+
+        <p>
+            Consider a support ticket that goes through:
+        </p>
+
+        <pre class="diagram">opened → processing → resolved → closed</pre>
+
+        <p>
+            Each transition has meaning: who changed it, when, and why.
+            Now imagine you drop <code>closed</code> from the enum and use <code>deleted_at</code> instead.
+            You've introduced a fundamental asymmetry:
+        </p>
+
+        <ul>
+            <li><code>opened</code>, <code>processing</code>, <code>resolved</code> live in a status column with full history</li>
+            <li><code>closed</code> lives in a timestamp, with no actor, no reason, no audit trail</li>
+        </ul>
+
+        <p>
+            Worse, <code>deleted_at IS NOT NULL</code> doesn't tell you why. Was the ticket
+            closed by a user? Auto-closed after 30 days? Closed because the customer
+            left? Cancelled by an admin? A single nullable timestamp absorbs all those
+            meanings and erases the distinctions.
+        </p>
+
+        <h2>what you lose</h2>
+
+        <ul>
+            <li>
+                <strong style="color:#e0e0e0">Queryability.</strong>
+                <code>WHERE status = 'closed'</code> is self-documenting.
+                <code>WHERE deleted_at IS NOT NULL</code> requires you to know that deletion
+                means closure in this specific table.
+            </li>
+            <li>
+                <strong style="color:#e0e0e0">Reversibility.</strong>
+                If you reopen a ticket by setting <code>deleted_at = NULL</code>,
+                "never closed" and "closed then reopened" become indistinguishable.
+                The history is gone.
+            </li>
+            <li>
+                <strong style="color:#e0e0e0">Multi-reason closure.</strong>
+                "Closed by agent", "auto-closed after 30 days", "closed because duplicate",
+                "closed by customer" are four different business events. One nullable timestamp
+                can't hold that.
+            </li>
+        </ul>
+
+        <h2>code: history with a deleted_at leak</h2>
+
+        <p>
+            You track ticket history as JSONB, appending an entry on every
+            transition. But <code>closed</code> isn't in the enum — it's <code>deleted_at</code>.
+            So the history gets short-circuited:
+        </p>
+
+        <pre class="bad"><code class="language-go">func GetTicketSummary(ticket Ticket) Summary {
+    // "deleted" means "closed" here. probably.
+    if ticket.DeletedAt.Valid {
+        return Summary{Status: "closed"}
+    }
+
+    // parse the actual history to figure out real state
+    var history []HistoryEntry
+    json.Unmarshal(ticket.History, &history)
+
+    last := history[len(history)-1]
+    return Summary{
+        Status:    last.Action,
+        ChangedBy: last.By,
+        ChangedAt: last.At,
+    }
+}</code></pre>
+
+        <p>
+            Every status except <code>closed</code> has an actor, a precise timestamp, and a reason
+            in the history. <code>closed</code> gets none of that — just a nullable column that
+            was meant for soft deletes. And if someone reopens the ticket by setting
+            <code>deleted_at = NULL</code>, the fact that it was ever closed disappears entirely.
+        </p>
+
+        <h2>code: the clean version</h2>
+
+        <p>
+            Same ticket, but <code>closed</code> is a proper status and every transition
+            appends to the history:
+        </p>
+
+        <pre class="good"><code class="language-go">type Ticket struct {
+    Status  string    // "opened", "in_progress", "resolved", "closed"
+    History []byte    // [{action, by, at, reason}, ...]
+}
+
+func UpdateTicketStatus(ctx context.Context, ticketID uuid.UUID, status string, entry HistoryEntry) {
+    entryJSON, _ := json.Marshal(entry)
+
+    query := `UPDATE tickets
+        SET status = $2,
+            history = history || $3::jsonb
+        WHERE uuid = $1`
+
+    db.Exec(ctx, query, ticketID, status, entryJSON)
+}</code></pre>
+
+        <p>
+            Closing a ticket is just another call to <code>UpdateTicketStatus</code>.
+            Who closed it, when, and why — all recorded. Reopening appends a new
+            entry; the closure is still in the history. Every state gets the same
+            treatment.
+        </p>
+
+        <h2>code: the switch leak</h2>
+
+        <p>
+            When <code>deleted_at</code> lives alongside a status enum,
+            branching logic starts checking it as a precondition and
+            the status enum silently stops being the source of truth:
+        </p>
+
+        <pre class="bad"><code class="language-go">func HandleTicket(ticket Ticket) error {
+    // quick exit: "deleted" means "closed"
+    if ticket.DeletedAt.Valid {
+        return ErrTicketClosed
+    }
+
+    switch ticket.Status {
+    case "opened":
+        return assignToAgent(ticket)
+    case "in_progress":
+        return checkProgress(ticket)
+    case "resolved":
+        return notifyCustomer(ticket)
+    }
+    return nil
+}</code></pre>
+
+        <p>
+            <code>closed</code> isn't in the switch. It's handled before
+            the switch even runs. A new developer reading the status enum will
+            never see it. A query filtering by status will miss it.
+            The state machine has a phantom state that only exists as a timestamp on a different column.
+        </p>
+
+        <pre class="good"><code class="language-go">func HandleTicket(ticket Ticket) error {
+    switch ticket.Status {
+    case "opened":
+        return assignToAgent(ticket)
+    case "in_progress":
+        return checkProgress(ticket)
+    case "resolved":
+        return notifyCustomer(ticket)
+    case "closed":
+        return ErrTicketClosed
+    }
+    return nil
+}</code></pre>
+
+        <p>
+            All states visible. All states queryable. <code>deleted_at</code> goes back to its
+            one job: making the row invisible.
+        </p>
+
+        <h2>the rule</h2>
+
+        <p>
+            <code>deleted_at</code> should answer exactly one question: "should this row
+            appear in normal queries?" If you find yourself checking
+            <code>deleted_at IS NOT NULL</code> as a business condition, you've
+            outgrown a boolean and need a proper status.
+        </p>
+
+        <a class="back" href="/">← back</a>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/go.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>
