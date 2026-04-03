@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBGE RBMC-IP — RTK Coverage Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #0a0a0a; color: #e0e0e0; }
+  #map { width: 100%; height: 100vh; }
+  .legend {
+    position: fixed; bottom: 20px; left: 20px; z-index: 1000;
+    background: rgba(10,10,10,0.92); border: 1px solid #333; border-radius: 8px;
+    padding: 14px 18px; font-size: 13px; line-height: 1.8;
+    backdrop-filter: blur(8px);
+  }
+  .legend-dot {
+    display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+    margin-right: 6px; vertical-align: middle;
+  }
+  .legend-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: #fff; }
+  .legend-sub { color: #888; font-size: 11px; }
+  .info-box {
+    position: fixed; top: 16px; right: 16px; z-index: 1000;
+    background: rgba(10,10,10,0.92); border: 1px solid #333; border-radius: 8px;
+    padding: 12px 16px; font-size: 13px; backdrop-filter: blur(8px);
+  }
+  .info-box strong { color: #fff; }
+  .leaflet-popup-content-wrapper {
+    background: rgba(15,15,15,0.95) !important; color: #e0e0e0 !important;
+    border: 1px solid #444 !important; border-radius: 6px !important;
+    backdrop-filter: blur(8px);
+  }
+  .leaflet-popup-tip { background: rgba(15,15,15,0.95) !important; }
+  .leaflet-popup-content { font-family: -apple-system, system-ui, sans-serif; font-size: 13px; line-height: 1.6; }
+  .leaflet-popup-content strong { color: #fff; }
+  .popup-mp { color: #6ec6ff; font-family: monospace; }
+  .popup-gnss { color: #aaa; font-size: 11px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="legend">
+  <div class="legend-title">IBGE RBMC-IP Coverage</div>
+  <div><span class="legend-dot" style="background:rgba(76,210,130,0.6)"></span> 20 km — RTK fix (1–2 cm)</div>
+  <div><span class="legend-dot" style="background:rgba(220,80,70,0.45)"></span> 50 km — RTK float / DGPS</div>
+  <div class="legend-sub" style="margin-top:6px">Accuracy degrades ~1 cm per 10 km from base</div>
+</div>
+<div class="info-box">
+  <strong id="station-count"></strong> base stations
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const stations = [{"mountpoint":"BRAZ1","city":"Brasilia","lat":-15.95,"lon":-47.88,"gnss":"GPS+GLO+SBAS"},{"mountpoint":"CEEU1","city":"Eusebio","lat":-3.88,"lon":-38.43,"gnss":"GPS+GLO"},{"mountpoint":"CEFE1","city":"Vitoria(CEFET)","lat":-20.31,"lon":-40.32,"gnss":"GPS+GLO"},{"mountpoint":"CUIB1","city":"Cuiaba","lat":-15.56,"lon":-56.07,"gnss":"GPS+GLO"},{"mountpoint":"GOGY1","city":"Goiania","lat":-16.66,"lon":-49.25,"gnss":"GPS+GLO"},{"mountpoint":"MTGA1","city":"Barra do Garcas","lat":-15.88,"lon":-52.31,"gnss":"GPS+GLO"},{"mountpoint":"PBJP1","city":"Joao Pessoa","lat":-7.14,"lon":-34.87,"gnss":"GPS+GLO"},{"mountpoint":"POAL1","city":"Porto Alegre","lat":-30.07,"lon":-51.12,"gnss":"GPS+GLO"},{"mountpoint":"POLI1","city":"Sao Paulo","lat":-23.56,"lon":-46.73,"gnss":"GPS+GLO"},{"mountpoint":"POVE1","city":"Porto Velho","lat":-8.71,"lon":-63.9,"gnss":"GPS+GLO"},{"mountpoint":"PPTE1","city":"Presidente Prudente","lat":-22.12,"lon":-51.41,"gnss":"GPS+GLO"},{"mountpoint":"PRGU1","city":"Guarapuava","lat":-25.38,"lon":-51.49,"gnss":"GPS+GLO"},{"mountpoint":"RJCG1","city":"Campos dos Goytacazes","lat":-21.76,"lon":-41.33,"gnss":"GPS+GLO"},{"mountpoint":"RJNI1","city":"Niteroi","lat":-22.91,"lon":-43.13,"gnss":"GPS+GLO"},{"mountpoint":"SCCH1","city":"Chapeco","lat":-27.14,"lon":-52.6,"gnss":"GPS+GLO"},{"mountpoint":"SCCR1","city":"Criciuma","lat":-28.68,"lon":-49.33,"gnss":"GPS+GLO"},{"mountpoint":"SCIM1","city":"Imbituba","lat":-28.24,"lon":-48.66,"gnss":"GPS+GLO"},{"mountpoint":"SPC11","city":"Campinas","lat":-22.82,"lon":-47.06,"gnss":"GPS+GLO"},{"mountpoint":"SPJA1","city":"Jaboticabal","lat":-21.24,"lon":-48.29,"gnss":"GPS+GLO"},{"mountpoint":"PAAR1","city":"Altamira","lat":-3.21,"lon":-52.21,"gnss":"GPS+GLO"},{"mountpoint":"UFPR1","city":"Curitiba","lat":-25.45,"lon":-49.23,"gnss":"GPS+GLO"},{"mountpoint":"RNNA1","city":"Natal","lat":-5.84,"lon":-35.21,"gnss":"GPS+GLO"},{"mountpoint":"ALAR0","city":"Arapiraca","lat":-9.75,"lon":-36.65,"gnss":"GPS+GLO"},{"mountpoint":"ALMC0","city":"Maceio","lat":-9.47,"lon":-35.83,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"AMCR0","city":"Coari","lat":-4.09,"lon":-63.14,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"AMHA0","city":"Humaita","lat":-7.52,"lon":-63.03,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"AMPT0","city":"Parintins","lat":-2.65,"lon":-56.75,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"AMTE0","city":"Tefe","lat":-3.35,"lon":-64.71,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"AMUA0","city":"Manaus","lat":-3.09,"lon":-60.02,"gnss":"GPS+GLO"},{"mountpoint":"APLJ0","city":"Laranjal do Jari","lat":-0.82,"lon":-52.52,"gnss":"GPS+GLO"},{"mountpoint":"APMA0","city":"Macapa","lat":0.05,"lon":-51.1,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"APS10","city":"Santana","lat":-0.06,"lon":-51.17,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"BABJ0","city":"Bom Jesus da Lapa","lat":-13.26,"lon":-43.55,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"BABR0","city":"Barreiras","lat":-12.15,"lon":-44.99,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"BAIC0","city":"Irece","lat":-11.33,"lon":-41.87,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"BAIL0","city":"Ilheus","lat":-14.8,"lon":-39.17,"gnss":"GPS+GLO"},{"mountpoint":"BAPA0","city":"Paulo Afonso","lat":-9.39,"lon":-38.22,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"BELE0","city":"Belem","lat":-1.41,"lon":-48.46,"gnss":"GPS+GLO"},{"mountpoint":"BEPA0","city":"Belem INPE","lat":-1.46,"lon":-48.44,"gnss":"GPS+GLO"},{"mountpoint":"BOAV0","city":"Boa Vista","lat":2.85,"lon":-60.7,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"CESB0","city":"Sobral","lat":-3.68,"lon":-40.34,"gnss":"GPS+GLO"},{"mountpoint":"CORU0","city":"Corumba","lat":-19.0,"lon":-57.63,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"CRAT0","city":"Crato","lat":-7.24,"lon":-39.42,"gnss":"GPS+GLO"},{"mountpoint":"EACH0","city":"Sao Paulo USP","lat":-23.48,"lon":-46.5,"gnss":"GPS+GLO"},{"mountpoint":"EESC0","city":"Sao Carlos","lat":-22.0,"lon":-47.9,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"ESNV0","city":"Nova Venecia","lat":-18.71,"lon":-40.38,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"GOJA0","city":"Jatai","lat":-17.88,"lon":-51.73,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"GOUR0","city":"Uruacu","lat":-14.51,"lon":-49.14,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"GUAI0","city":"Guaira","lat":-24.08,"lon":-54.26,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"IFSC0","city":"Florianopolis IFSC","lat":-27.59,"lon":-48.54,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"ILHA0","city":"Ilha Solteira","lat":-20.43,"lon":-51.34,"gnss":"GPS+GLO"},{"mountpoint":"IMPZ0","city":"Imperatriz","lat":-5.49,"lon":-47.5,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"ITAI0","city":"Foz do Iguacu","lat":-25.42,"lon":-54.59,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MABA0","city":"Maraba","lat":-5.36,"lon":-49.12,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MABB0","city":"Bacabal","lat":-4.24,"lon":-44.82,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MGBH0","city":"Belo Horizonte","lat":-19.94,"lon":-43.92,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MGGV0","city":"Governador Valadares","lat":-18.83,"lon":-41.98,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MGIN0","city":"Inconfidentes","lat":-22.32,"lon":-46.33,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MGJA0","city":"Januaria","lat":-15.45,"lon":-44.37,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MGJF0","city":"Juiz de Fora","lat":-21.78,"lon":-43.37,"gnss":"GPS+GLO"},{"mountpoint":"MGJP0","city":"Belo Horizonte FJP","lat":-19.85,"lon":-43.97,"gnss":"GPS+GLO"},{"mountpoint":"MGLA0","city":"Lavras","lat":-21.23,"lon":-44.97,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MGMC0","city":"Montes Claros","lat":-16.72,"lon":-43.86,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MGMT0","city":"Monte Carmelo","lat":-18.72,"lon":-47.52,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MGRP0","city":"Rio Paranaiba","lat":-19.21,"lon":-46.13,"gnss":"GPS+GLO"},{"mountpoint":"MGUB0","city":"Uberlandia","lat":-18.92,"lon":-48.26,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MSDR0","city":"Dourados","lat":-22.19,"lon":-54.93,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MSGR0","city":"Campo Grande","lat":-20.45,"lon":-54.72,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MTCA0","city":"Caceres","lat":-16.13,"lon":-57.69,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"MTLA0","city":"Pontes e Lacerda","lat":-15.23,"lon":-59.35,"gnss":"GPS+GLO"},{"mountpoint":"MTLE0","city":"Primavera do Leste","lat":-15.55,"lon":-54.28,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"NAUS0","city":"Manaus","lat":-3.02,"lon":-60.06,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"NEIA0","city":"Cananeia","lat":-25.02,"lon":-47.92,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"ONRJ0","city":"Rio de Janeiro","lat":-22.9,"lon":-43.22,"gnss":"GPS+GLO"},{"mountpoint":"PAIT0","city":"Itaituba","lat":-4.29,"lon":-56.04,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"PASM0","city":"Santarem","lat":-2.43,"lon":-54.73,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"PBCG0","city":"Campina Grande","lat":-7.21,"lon":-35.91,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"PBPT0","city":"Patos","lat":-7.07,"lon":-37.29,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"PECA0","city":"Caruaru","lat":-8.23,"lon":-35.98,"gnss":"GPS+GLO+GAL+SBAS"},{"mountpoint":"PEPE0","city":"Petrolina","lat":-9.38,"lon":-40.51,"gnss":"GPS+GLO"},{"mountpoint":"PERC0","city":"Recife","lat":-8.06,"lon":-34.95,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"PIFL0","city":"Floriano","lat":-6.79,"lon":-43.04,"gnss":"GPS+GLO"},{"mountpoint":"PISR0","city":"Sao Raimundo Nonato","lat":-9.03,"lon":-42.7,"gnss":"GPS"},{"mountpoint":"PRCL0","city":"Cascavel","lat":-24.99,"lon":-53.45,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"PRMA0","city":"Maringa","lat":-23.41,"lon":-51.94,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"RJFB0","city":"Nova Friburgo","lat":-22.29,"lon":-42.54,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"RNPF0","city":"Pau dos Ferros","lat":-6.13,"lon":-38.21,"gnss":"GPS+GLO"},{"mountpoint":"ROCO0","city":"Colorado do Oeste","lat":-13.11,"lon":-60.49,"gnss":"GPS+GLO"},{"mountpoint":"ROGU0","city":"Guajara-Mirim","lat":-10.76,"lon":-65.32,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"ROJI0","city":"Ji-Parana","lat":-10.86,"lon":-61.96,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"ROSA0","city":"Rosana","lat":-22.52,"lon":-52.95,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"RSCL0","city":"Cerro Largo","lat":-28.14,"lon":-54.75,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"RSPE0","city":"Pelotas","lat":-31.8,"lon":-52.42,"gnss":"GPS+GLO"},{"mountpoint":"RSPF0","city":"Passo Fundo","lat":-28.23,"lon":-52.39,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"RSSL0","city":"Sao Leopoldo","lat":-29.79,"lon":-51.15,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SALU0","city":"Sao Luis","lat":-2.59,"lon":-44.21,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SCAQ0","city":"Araquari","lat":-26.39,"lon":-48.74,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SCBL0","city":"Blumenau","lat":-26.88,"lon":-49.14,"gnss":"GPS+GLO"},{"mountpoint":"SCCA0","city":"Cacador","lat":-26.78,"lon":-51.04,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SCFL0","city":"Florianopolis","lat":-27.6,"lon":-48.52,"gnss":"GPS+GLO"},{"mountpoint":"SCLA0","city":"Lages","lat":-27.79,"lon":-50.3,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SEAJ0","city":"Aracaju","lat":-10.93,"lon":-37.1,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SJRP0","city":"Sao Jose do Rio Preto","lat":-20.79,"lon":-49.36,"gnss":"GPS+GLO+GAL+SBAS"},{"mountpoint":"SJSP0","city":"Sao Jose dos Campos","lat":-23.21,"lon":-45.86,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SMAR0","city":"Santa Maria","lat":-29.72,"lon":-53.72,"gnss":"GPS+GLO"},{"mountpoint":"SPBO0","city":"Botucatu","lat":-22.85,"lon":-48.43,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SPFE0","city":"Fernandopolis","lat":-20.26,"lon":-50.23,"gnss":"GPS+GLO"},{"mountpoint":"SPFR0","city":"Franca","lat":-20.51,"lon":-47.39,"gnss":"GPS+GLO"},{"mountpoint":"SPLI0","city":"Lins","lat":-21.67,"lon":-49.73,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SPOR0","city":"Ourinhos","lat":-23.0,"lon":-49.84,"gnss":"GPS+GLO"},{"mountpoint":"SPS10","city":"Sorocaba","lat":-23.48,"lon":-47.42,"gnss":"GPS+GLO"},{"mountpoint":"SPTU0","city":"Tupa","lat":-21.93,"lon":-50.49,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"SSA10","city":"Salvador","lat":-12.98,"lon":-38.52,"gnss":"GPS+GLO"},{"mountpoint":"STHA0","city":"Sta Helena","lat":-24.85,"lon":-54.34,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"TOGU0","city":"Gurupi","lat":-11.75,"lon":-49.05,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"TOPL0","city":"Palmas","lat":-10.17,"lon":-48.33,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"UBA10","city":"Ubatuba","lat":-23.5,"lon":-45.12,"gnss":"GPS+GLO+GAL+BDS+SBAS"},{"mountpoint":"VICO0","city":"Vicosa","lat":-20.76,"lon":-42.87,"gnss":"GPS+GLO+GAL+BDS+SBAS"}];
+
+document.getElementById('station-count').textContent = stations.length;
+
+const map = L.map('map', { zoomControl: false }).setView([-14.5, -51], 5);
+
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+stations.forEach(s => {
+  // 50km circle — red
+  L.circle([s.lat, s.lon], {
+    radius: 50000,
+    color: 'rgba(220, 80, 70, 0.35)',
+    weight: 0.5,
+    fillColor: 'rgba(220, 80, 70, 0.12)',
+    fillOpacity: 1
+  }).addTo(map);
+
+  // 20km circle — green
+  L.circle([s.lat, s.lon], {
+    radius: 20000,
+    color: 'rgba(76, 210, 130, 0.5)',
+    weight: 0.5,
+    fillColor: 'rgba(76, 210, 130, 0.15)',
+    fillOpacity: 1
+  }).addTo(map);
+
+  // Station marker
+  const marker = L.circleMarker([s.lat, s.lon], {
+    radius: 4,
+    color: '#fff',
+    weight: 1.5,
+    fillColor: '#4cd282',
+    fillOpacity: 1
+  }).addTo(map);
+
+  marker.bindPopup(
+    `<strong>${s.city}</strong><br>` +
+    `<span class="popup-mp">${s.mountpoint}</span><br>` +
+    `<span class="popup-gnss">${s.gnss}</span><br>` +
+    `<span class="popup-gnss">${s.lat.toFixed(2)}, ${s.lon.toFixed(2)}</span>`
+  );
+});
+</script>
+</body>
+</html>
