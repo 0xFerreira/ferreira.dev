@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LeafScan — Architecture</title>
+<style>
+  :root {
+    --paper: #f5f1e8;
+    --ink:   #1a1a1a;
+    --mute:  #6b6358;
+    --rule:  #2a2a2a;
+    --hi:    #d94f04;
+    --ok:    #1f7a3a;
+    --no:    #a02020;
+    --grid:  #e8e2d3;
+    --tint:  #ecdfb7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #16140f;
+      --ink:   #ece7d9;
+      --mute:  #8c8576;
+      --rule:  #d6cfbb;
+      --hi:    #f08b3a;
+      --ok:    #6dc185;
+      --no:    #e07070;
+      --grid:  #25221a;
+      --tint:  #2a2516;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: -1px -1px;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+  }
+  header {
+    border-bottom: 2px solid var(--rule);
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  header .id { color: var(--mute); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+  header h1 {
+    font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+    font-weight: 600;
+    font-size: 56px;
+    line-height: 1;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+  header h1 .tag { color: var(--hi); font-style: italic; font-weight: 400; }
+  header .meta {
+    text-align: right;
+    font-size: 11px;
+    color: var(--mute);
+    line-height: 1.7;
+  }
+  header .meta b { color: var(--ink); font-weight: 600; }
+
+  .lede {
+    font-size: 17px;
+    line-height: 1.65;
+    max-width: 70ch;
+    margin: 0 0 64px;
+    color: var(--ink);
+  }
+  .lede b { background: var(--tint); padding: 0 4px; border-radius: 2px; font-weight: 600; }
+
+  section { margin-bottom: 72px; }
+  h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  h2 .num {
+    display: inline-block;
+    width: 36px;
+    color: var(--hi);
+    font-style: italic;
+    font-weight: 400;
+  }
+  h2 + .sub {
+    color: var(--mute);
+    font-size: 13px;
+    margin: 0 0 24px 36px;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed var(--rule);
+  }
+  h3 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--mute);
+    margin: 32px 0 12px;
+    font-weight: 600;
+  }
+
+  p { margin: 0 0 14px; }
+
+  code, .mono { font-family: inherit; }
+  p code, li code, td code {
+    background: var(--tint);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 0.92em;
+  }
+
+  /* ── Diagram ───────────────────────────────────────────── */
+  .pipe {
+    border: 1.5px solid var(--rule);
+    background: var(--paper);
+    padding: 28px;
+    margin: 0 0 24px;
+    position: relative;
+  }
+  .pipe::before {
+    content: "fig.1 — signal flow";
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: var(--paper);
+    padding: 0 8px;
+    font-size: 11px;
+    color: var(--mute);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .pipe svg { width: 100%; height: auto; display: block; }
+  .pipe svg text { fill: var(--ink); }
+  .pipe svg .mute { fill: var(--mute); }
+  .pipe svg .hi   { stroke: var(--hi); color: var(--hi); }
+
+  /* ── Table ─────────────────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--grid);
+    vertical-align: top;
+  }
+  th {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+    color: var(--mute);
+    border-bottom: 1.5px solid var(--rule);
+  }
+  tr:hover td { background: var(--tint); }
+  td.name { font-weight: 600; white-space: nowrap; }
+  .pill {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-size: 11px;
+    margin: 0 2px 2px 0;
+    background: var(--grid);
+  }
+  .pill.r { background: rgba(31, 122, 58, 0.15); color: var(--ok); }
+  .pill.w { background: rgba(217, 79, 4, 0.15); color: var(--hi); }
+  .pill.o { background: var(--grid); color: var(--mute); font-style: italic; }
+  .pill.no { background: rgba(160, 32, 32, 0.15); color: var(--no); }
+
+  /* ── Two-col layout for resolver / scheduler ───────────── */
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .card {
+    border: 1px solid var(--rule);
+    padding: 20px 22px;
+    background: var(--paper);
+  }
+  .card h4 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .card .step {
+    display: flex;
+    gap: 12px;
+    margin: 10px 0;
+    font-size: 13px;
+  }
+  .card .step .n {
+    flex: 0 0 24px;
+    height: 24px;
+    border: 1px solid var(--rule);
+    text-align: center;
+    line-height: 22px;
+    font-weight: 600;
+  }
+
+  /* ── Memory bars ───────────────────────────────────────── */
+  .arenas { display: grid; gap: 10px; }
+  .arena {
+    display: grid;
+    grid-template-columns: 140px 1fr 90px;
+    gap: 12px;
+    align-items: center;
+  }
+  .arena .lbl { font-weight: 600; font-size: 13px; }
+  .arena .bar {
+    height: 22px;
+    border: 1px solid var(--rule);
+    position: relative;
+    background: var(--grid);
+  }
+  .arena .bar > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--hi);
+    opacity: 0.85;
+  }
+  .arena .sz { font-size: 12px; color: var(--mute); text-align: right; }
+
+  /* ── Code block ────────────────────────────────────────── */
+  pre {
+    background: var(--tint);
+    border-left: 3px solid var(--hi);
+    padding: 14px 16px;
+    margin: 14px 0;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  pre .c { color: var(--mute); }
+  pre .k { color: var(--hi); }
+
+  /* ── Footer ────────────────────────────────────────────── */
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    color: var(--mute);
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .legend { font-size: 11px; color: var(--mute); margin-top: 8px; }
+  .legend span { display: inline-block; margin-right: 14px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; vertical-align: -1px; margin-right: 4px; border: 1px solid currentColor; }
+
+  ul.dense { margin: 0; padding-left: 18px; }
+  ul.dense li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="id">leafscan / engineering note</div>
+      <h1>LeafScan <span class="tag">v2.0</span></h1>
+    </div>
+    <div class="meta">
+      <b>edge daemon</b> · C++20 · no exceptions · no RTTI<br>
+      <b>target</b> NVIDIA Jetson · Basler · u-blox F9P<br>
+      <b>boot</b> static memory · zero runtime alloc
+    </div>
+  </header>
+
+  <p class="lede">
+    LeafScan is a single binary that drives an agricultural sensor rig: cameras, LiDAR, GNSS, modem.
+    Sensors emit <b>signals</b> onto a <b>bus</b>; detection workloads consume them and write back
+    detections. The whole thing boots by <b>probing what's plugged in</b>, then resolves which workloads
+    can actually run given the sensors that answered. No threads. No allocations after startup. One
+    HTTP server for the dashboard.
+  </p>
+
+  <!-- ── Pipeline diagram ─────────────────────────────────── -->
+  <section>
+    <h2><span class="num">01</span>Pipeline</h2>
+    <p class="sub">Sensors write, workloads read &amp; write, dashboard observes.</p>
+
+    <div class="pipe">
+      <svg viewBox="0 0 980 360" role="img" aria-label="signal flow diagram">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+          <pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="currentColor" stroke-width="0.6" opacity="0.25"/>
+          </pattern>
+        </defs>
+
+        <!-- column headers -->
+        <g font-size="10" font-family="inherit" class="mute" text-anchor="middle" letter-spacing="2">
+          <text x="110" y="22">SENSORS</text>
+          <text x="490" y="22">BUS · SIGNALS</text>
+          <text x="870" y="22">WORKLOADS</text>
+        </g>
+
+        <!-- sensor boxes (left col, x=20..200) -->
+        <g font-size="11" font-family="inherit">
+          <g>
+            <rect x="20" y="40" width="180" height="40" fill="none" stroke="currentColor"/>
+            <text x="32" y="58" font-weight="600">basler</text>
+            <text x="32" y="73" class="mute" font-size="10">2× 3024×4024 Bayer · USB</text>
+          </g>
+          <g>
+            <rect x="20" y="92" width="180" height="40" fill="url(#hatch)" stroke="currentColor"/>
+            <text x="32" y="110" font-weight="600">genicam</text>
+            <text x="32" y="125" class="mute" font-size="10">Aravis · fallback · not found</text>
+          </g>
+          <g>
+            <rect x="20" y="144" width="180" height="40" fill="url(#hatch)" stroke="currentColor"/>
+            <text x="32" y="162" font-weight="600">ouster</text>
+            <text x="32" y="177" class="mute" font-size="10">UDP 7502 · LiDAR · not found</text>
+          </g>
+          <g>
+            <rect x="20" y="196" width="180" height="40" fill="none" stroke="currentColor"/>
+            <text x="32" y="214" font-weight="600">gnss</text>
+            <text x="32" y="229" class="mute" font-size="10">u-blox F9P · /dev/ttyACM0</text>
+          </g>
+          <g>
+            <rect x="20" y="248" width="180" height="40" fill="none" stroke="currentColor"/>
+            <text x="32" y="266" font-weight="600">modem</text>
+            <text x="32" y="281" class="mute" font-size="10">NetworkManager · WiFi/4G</text>
+          </g>
+        </g>
+
+        <!-- bus column (center, signals as labelled lanes) -->
+        <g font-family="inherit" font-size="11">
+          <rect x="280" y="40" width="400" height="280" fill="none" stroke="currentColor" stroke-dasharray="4 3"/>
+          <text x="290" y="56" class="mute" font-size="10" letter-spacing="1">ENTITIES · DOUBLE-BUFFERED</text>
+
+          <g transform="translate(300,72)">
+            <rect width="360" height="32" fill="none" stroke="currentColor"/>
+            <text x="12" y="20" font-weight="600">Frame</text>
+            <text x="80" y="20" class="mute" font-size="10">cam0 · cam1</text>
+            <text x="200" y="20" class="mute" font-size="10">3024×4024 · seq++</text>
+          </g>
+          <g transform="translate(300,114)">
+            <rect width="360" height="32" fill="url(#hatch)" stroke="currentColor"/>
+            <text x="12" y="20" font-weight="600">Depth</text>
+            <text x="80" y="20" class="mute" font-size="10">— absent —</text>
+          </g>
+          <g transform="translate(300,156)">
+            <rect width="360" height="32" fill="none" stroke="currentColor"/>
+            <text x="12" y="20" font-weight="600">Position</text>
+            <text x="80" y="20" class="mute" font-size="10">gps0</text>
+            <text x="200" y="20" class="mute" font-size="10">RTK-fix · ZED-F9P</text>
+          </g>
+          <g transform="translate(300,198)">
+            <rect width="360" height="32" fill="none" stroke="currentColor"/>
+            <text x="12" y="20" font-weight="600">Connectivity</text>
+            <text x="105" y="20" class="mute" font-size="10">net0 · 30s</text>
+          </g>
+          <g transform="translate(300,240)">
+            <rect width="360" height="32" fill="none" stroke="currentColor"/>
+            <text x="12" y="20" font-weight="600">Detection</text>
+            <text x="95" y="20" class="mute" font-size="10">citrus:cam0 · citrus:cam1 · …</text>
+          </g>
+          <g transform="translate(300,282)">
+            <rect width="360" height="32" fill="none" stroke="currentColor"/>
+            <text x="12" y="20" font-weight="600">HwStats</text>
+            <text x="80" y="20" class="mute" font-size="10">debug0 · 5s snapshot</text>
+          </g>
+        </g>
+
+        <!-- arrows: sensors -> bus -->
+        <g stroke="currentColor" fill="none" color="currentColor" stroke-width="1">
+          <line x1="200" y1="60" x2="298" y2="86" marker-end="url(#arr)"/>
+          <line x1="200" y1="216" x2="298" y2="170" marker-end="url(#arr)"/>
+          <line x1="200" y1="268" x2="298" y2="212" marker-end="url(#arr)"/>
+        </g>
+
+        <!-- workload boxes (right col, x=760..960) -->
+        <g font-size="11" font-family="inherit">
+          <g>
+            <rect x="760" y="40" width="200" height="40" fill="none" stroke="currentColor"/>
+            <text x="772" y="58" font-weight="600">citrus_detection</text>
+            <text x="772" y="73" class="mute" font-size="10">RT-DETR · 2 cls · per-frame</text>
+          </g>
+          <g>
+            <rect x="760" y="92" width="200" height="40" fill="none" stroke="currentColor"/>
+            <text x="772" y="110" font-weight="600">avocado_sizing</text>
+            <text x="772" y="125" class="mute" font-size="10">3 cls · needs Depth*</text>
+          </g>
+          <g>
+            <rect x="760" y="144" width="200" height="40" fill="none" stroke="currentColor"/>
+            <text x="772" y="162" font-weight="600">coffee_survey</text>
+            <text x="772" y="177" class="mute" font-size="10">4 cls · 2 Hz</text>
+          </g>
+          <g>
+            <rect x="760" y="232" width="200" height="40" fill="none" stroke="currentColor"/>
+            <text x="772" y="250" font-weight="600">debugger</text>
+            <text x="772" y="265" class="mute" font-size="10">bus snapshot @ 5s</text>
+          </g>
+          <g>
+            <rect x="760" y="284" width="200" height="40" fill="none" stroke="currentColor"/>
+            <text x="772" y="302" font-weight="600">api / dashboard</text>
+            <text x="772" y="317" class="mute" font-size="10">:8080 · /api/* · SPA</text>
+          </g>
+        </g>
+
+        <!-- arrows: bus -> workloads (reads) -->
+        <g stroke="currentColor" fill="none" color="currentColor" stroke-width="1">
+          <line x1="660" y1="88"  x2="758" y2="60"  marker-end="url(#arr)"/>
+          <line x1="660" y1="88"  x2="758" y2="112" marker-end="url(#arr)"/>
+          <line x1="660" y1="172" x2="758" y2="112" marker-end="url(#arr)"/>
+          <line x1="660" y1="172" x2="758" y2="60"  marker-end="url(#arr)"/>
+          <line x1="660" y1="172" x2="758" y2="164" marker-end="url(#arr)"/>
+          <line x1="660" y1="88"  x2="758" y2="164" marker-end="url(#arr)"/>
+        </g>
+
+        <!-- writes back: workload -> Detection lane -->
+        <g class="hi" fill="none" stroke-width="1" stroke-dasharray="3 2">
+          <path d="M760,72 C720,90 700,232 660,254" marker-end="url(#arr)" style="color:var(--hi)"/>
+          <path d="M760,124 C720,160 700,240 660,256" marker-end="url(#arr)" style="color:var(--hi)"/>
+          <path d="M760,176 C720,200 700,248 660,260" marker-end="url(#arr)" style="color:var(--hi)"/>
+        </g>
+
+        <!-- bus -> debugger / api -->
+        <g stroke="currentColor" fill="none" color="currentColor" stroke-width="1">
+          <line x1="660" y1="296" x2="758" y2="252" marker-end="url(#arr)"/>
+          <line x1="660" y1="296" x2="758" y2="304" marker-end="url(#arr)"/>
+        </g>
+      </svg>
+      <div class="legend">
+        <span><i style="background:currentColor;opacity:0.0;border-color:currentColor"></i>solid box · started</span>
+        <span><i style="background:url(#hatch);background-color:var(--grid)"></i>hatched · not detected</span>
+        <span style="color:var(--hi)"><i style="background:var(--hi)"></i>dashed orange · write-back</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Core model ──────────────────────────────────────── -->
+  <section>
+    <h2><span class="num">02</span>The model</h2>
+    <p class="sub">Four nouns. Everything is one of these.</p>
+
+    <table>
+      <thead><tr><th style="width:130px">noun</th><th>shape</th><th>purpose</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="name">Signal</td>
+          <td><code>enum</code> · 6 values · 1 byte</td>
+          <td>The type of data flowing on the bus: <code>Frame</code>, <code>Depth</code>, <code>Position</code>, <code>Connectivity</code>, <code>Detection</code>, <code>HwStats</code>. New data type? New enum value.</td>
+        </tr>
+        <tr>
+          <td class="name">Component</td>
+          <td>POD struct of fn-pointers</td>
+          <td>A driver or workload. Declares <code>reads / writes / optional</code> signals plus <code>detect / start / stop</code> hooks. There are nine of them, all listed in <code>main.cpp</code> at compile time.</td>
+        </tr>
+        <tr>
+          <td class="name">Entity</td>
+          <td>fixed slot, max 64 on the bus</td>
+          <td>A named producer of one signal. <code>cam0</code> writes <code>Frame</code>; <code>citrus:cam0</code> writes <code>Detection</code> sourced from <code>cam0</code>. Double-buffered (<code>buf[2]</code> + <code>front</code>) with monotonic <code>seq</code> and <code>timestamp_ns</code>. Each entity owns its own <code>tick</code> + <code>interval_ms</code>.</td>
+        </tr>
+        <tr>
+          <td class="name">Bus</td>
+          <td>flat array of entities + arena pointers</td>
+          <td>The whole shared-memory world. No locks: writers flip <code>front</code> after filling the back buffer; readers take a snapshot of <code>(front, seq)</code>. That's the synchronisation.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── Component table ─────────────────────────────────── -->
+  <section>
+    <h2><span class="num">03</span>Components</h2>
+    <p class="sub">Compile-time list, registered in <code>main.cpp</code>. Order is the resolver's tie-break.</p>
+
+    <table>
+      <thead><tr>
+        <th>name</th><th>kind</th><th>reads</th><th>writes</th><th>tick</th><th>notes</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="name">modem</td>
+          <td>sensor</td>
+          <td>—</td>
+          <td><span class="pill w">Connectivity</span></td>
+          <td>30 s</td>
+          <td>Probes NetworkManager. RSSI &amp; up/down.</td>
+        </tr>
+        <tr>
+          <td class="name">basler</td>
+          <td>sensor</td>
+          <td>—</td>
+          <td><span class="pill w">Frame</span></td>
+          <td>1 s</td>
+          <td>Two cameras over Pylon SDK. 3024×4024 Bayer.</td>
+        </tr>
+        <tr>
+          <td class="name">genicam</td>
+          <td>sensor</td>
+          <td>—</td>
+          <td><span class="pill w">Frame</span></td>
+          <td>1 s</td>
+          <td>Aravis fallback. Stub returns <span class="pill no">not found</span>.</td>
+        </tr>
+        <tr>
+          <td class="name">ouster</td>
+          <td>sensor</td>
+          <td>—</td>
+          <td><span class="pill w">Depth</span></td>
+          <td>100 ms</td>
+          <td>UDP 7502. Stub returns <span class="pill no">not found</span> — so <code>avocado</code> can't start.</td>
+        </tr>
+        <tr>
+          <td class="name">gnss</td>
+          <td>sensor</td>
+          <td>—</td>
+          <td><span class="pill w">Position</span></td>
+          <td>1 s</td>
+          <td>F9P over serial. <span class="pill o">Connectivity</span> → NTRIP/RTK.</td>
+        </tr>
+        <tr>
+          <td class="name">citrus_detection</td>
+          <td>workload</td>
+          <td><span class="pill r">Frame</span><span class="pill r">Position</span></td>
+          <td><span class="pill w">Detection</span></td>
+          <td>1 s</td>
+          <td>RT-DETR · 2 classes. One detection entity <em>per frame source</em>.</td>
+        </tr>
+        <tr>
+          <td class="name">avocado_sizing</td>
+          <td>workload</td>
+          <td><span class="pill r">Frame</span><span class="pill r">Depth</span><span class="pill r">Position</span></td>
+          <td><span class="pill w">Detection</span></td>
+          <td>1 s</td>
+          <td>3 classes. Hard-requires Depth, so it sits out when LiDAR is absent.</td>
+        </tr>
+        <tr>
+          <td class="name">coffee_survey</td>
+          <td>workload</td>
+          <td><span class="pill r">Frame</span><span class="pill r">Position</span></td>
+          <td><span class="pill w">Detection</span></td>
+          <td>2 s</td>
+          <td>4 classes. <span class="pill o">Connectivity</span>.</td>
+        </tr>
+        <tr>
+          <td class="name">debugger</td>
+          <td>introspection</td>
+          <td>—</td>
+          <td><span class="pill w">HwStats</span></td>
+          <td>5 s</td>
+          <td>Walks the bus, logs <code>seq</code> + age for every entity.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── Boot / scheduler ───────────────────────────────── -->
+  <section>
+    <h2><span class="num">04</span>Boot &amp; runtime</h2>
+    <p class="sub">Two phases at startup, then a single scheduler loop forever.</p>
+
+    <div class="grid2">
+      <div class="card">
+        <h4>Resolver — <code>resolve.cpp</code></h4>
+        <div class="step"><div class="n">1</div>
+          <div><b>Detect.</b> For every component, call <code>detect()</code>. Hardware probes succeed or fail; software components (no detect fn) are always available.</div>
+        </div>
+        <div class="step"><div class="n">2</div>
+          <div><b>Start, in rounds.</b> Loop over detected components. A component starts only when every <code>reads</code> signal already exists on the bus. Starting it registers entities → unblocks the next round.</div>
+        </div>
+        <div class="step"><div class="n">3</div>
+          <div><b>Mark stragglers.</b> Whatever is still <code>Detected</code> after no progress was made gets <code>DepsMissing</code> (e.g. avocado without ouster).</div>
+        </div>
+        <p style="margin-top:14px;color:var(--mute);font-size:12px">
+          Topological start without an explicit DAG — the bus <em>is</em> the dependency graph. Cheap, and you can hot-add a component by adding one line to <code>main.cpp</code>.
+        </p>
+      </div>
+
+      <div class="card">
+        <h4>Scheduler — <code>scheduler.cpp</code></h4>
+        <p style="margin-top:0">A single thread. After resolve, every entity with a non-null <code>tick</code> gets a slot (max 32). The loop wakes at the earliest deadline, fires every slot whose deadline has passed, recomputes the next deadline, sleeps again.</p>
+        <pre><span class="c">// no-drift sleep, kernel idles the core</span>
+clock_nanosleep(<span class="k">CLOCK_MONOTONIC</span>,
+                <span class="k">TIMER_ABSTIME</span>,
+                &amp;next_deadline,
+                nullptr);</pre>
+        <p style="font-size:12px;color:var(--mute);margin-top:12px">
+          Falling behind is non-fatal: deadline jumps to <code>now + interval</code> rather than catching up frantically. Idle root entities (e.g. a camera with no consumer) are deliberately not scheduled.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Memory ─────────────────────────────────────────── -->
+  <section>
+    <h2><span class="num">05</span>Memory</h2>
+    <p class="sub">Three static byte arrays, three bump arenas. Allocation ends before the run loop starts.</p>
+
+    <div class="arenas">
+      <div class="arena">
+        <div class="lbl">frames</div>
+        <div class="bar"><span style="width:18%"></span></div>
+        <div class="sz">32 MB</div>
+      </div>
+      <div class="arena">
+        <div class="lbl">detections</div>
+        <div class="bar"><span style="width:42%"></span></div>
+        <div class="sz">1 MB</div>
+      </div>
+      <div class="arena">
+        <div class="lbl">scratch</div>
+        <div class="bar"><span style="width:8%"></span></div>
+        <div class="sz">4 MB</div>
+      </div>
+    </div>
+
+    <p style="margin-top:18px">
+      All three live in <code>.bss</code> (declared as <code>static uint8_t pool[N]</code> in <code>main.cpp</code>). The <code>Arena</code> bump-allocator hands out aligned, zeroed slices from each pool when components register entities. Once <code>resolve()</code> returns, the <code>.bss</code> footprint is whatever it is — and stays that way.
+    </p>
+    <p style="color:var(--mute);font-size:12px">
+      Compile flags: <code>-fno-exceptions -fno-rtti -Wall -Wextra -Wpedantic</code>. The <code>Component</code> contract uses raw function pointers and <code>std::span</code>, no virtual dispatch.
+    </p>
+  </section>
+
+  <!-- ── HTTP API ───────────────────────────────────────── -->
+  <section>
+    <h2><span class="num">06</span>Dashboard API</h2>
+    <p class="sub">An HTTP server thread alongside the scheduler. Serves the SPA and a few read-only routes. <span class="pill no">stubbed</span> — <code>server_start()</code> currently just logs; no socket, no routes wired.</p>
+
+    <table>
+      <thead><tr><th>method</th><th>path</th><th>returns</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET</code></td><td><code>/api/status</code></td><td>pipeline state JSON</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/components</code></td><td>component name + status (<code>started</code> / <code>not_found</code> / <code>deps_missing</code> / …)</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/bus</code></td><td>entities, signals, seq, age</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/frame/:entity</code></td><td>latest JPEG frame (re-encoded from the entity's front buffer)</td></tr>
+        <tr><td><code>GET</code></td><td><code>/</code></td><td>SPA from <code>./frontend/dist/</code></td></tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top:16px;color:var(--mute);font-size:12px">
+      Port is configurable via <code>/etc/leafscan.toml</code> (<code>dashboard_port</code>, default 8080). The legacy Python implementation lives in <code>prototype/{backend,frontend,infra,scripts}</code> for reference.
+    </p>
+  </section>
+
+  <!-- ── Mental model ────────────────────────────────────── -->
+  <section>
+    <h2><span class="num">07</span>How to think about it</h2>
+    <p class="sub">If you're patching this codebase tomorrow.</p>
+
+    <ul class="dense">
+      <li><b>Want a new sensor?</b> Add a <code>Component</code> with <code>writes = {Signal::X}</code>. Implement <code>detect / start / stop / tick</code>. Register it in <code>main.cpp</code>.</li>
+      <li><b>Want a new workload?</b> Same shape, but <code>reads = {…}</code>. The resolver handles ordering; you don't.</li>
+      <li><b>Want a new data type?</b> Add a value to the <code>Signal</code> enum and a metadata struct to the <code>Entity::meta</code> union.</li>
+      <li><b>Synchronisation:</b> writers fill the back buffer, then flip <code>front</code> and bump <code>seq</code>. Readers snapshot <code>front</code> and read <code>buf[front]</code>. No mutex, single-threaded scheduler.</li>
+      <li><b>What runs at runtime?</b> Just the scheduler loop and the HTTP server. No allocations, no exceptions, no surprises.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div>
+      leafscan v2.0 · <code>src/</code> · 9 components · 6 signals · 64 entity slots · 32 scheduler slots
+    </div>
+    <div>
+      generated from source — single page, no build step, no dependencies
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
