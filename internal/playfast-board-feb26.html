@@ -697,7 +697,7 @@ const app = Vue.createApp({
     },
     async checkPassword() {
       const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(this.passwordInput)))).map(b=>b.toString(16).padStart(2,'0')).join('');
-      if (hash === 'f7439ed1d574b11b542032246beaaa97bac27dc2381655f07b3b8df537818b3f') {
+      if (hash === '9178cbddf0451fc85c13afdf093e8ccde96e92ceaf30ac5fa570b76e595ac6f7') {
         this.unlocked = true;
         this.passwordError = false;
         this.$nextTick(() => this.renderTabCharts());
