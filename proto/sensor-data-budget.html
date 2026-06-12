@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tractor Sensor Data Budget</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3ecd9;
+    --panel: #faf5e6;
+    --panel2: #efe6cd;
+    --line: #cbbd9a;
+    --ink: #3a3120;
+    --dim: #8a7a57;
+    --green: #4f7a28;
+    --amber: #b3691f;
+    --red: #a83a22;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0 38px, #5c4a2808 38px 40px),
+      radial-gradient(ellipse 90% 40% at 50% 0%, #d9c89b55, transparent);
+    color: var(--ink);
+    font-family: 'Zilla Slab', serif;
+    min-height: 100vh;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+  header { border-bottom: 4px double var(--ink); padding-bottom: 18px; margin-bottom: 28px; }
+  header h1 { font-weight: 700; font-size: clamp(26px, 4vw, 42px); letter-spacing: 0.01em; }
+  header h1 em { font-style: italic; color: var(--green); }
+  header p { color: var(--dim); margin-top: 6px; font-size: 15px; font-style: italic; }
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
+  @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+
+  .controls { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 3px 3px 0 #cbbd9a66; padding: 20px; align-self: start; position: sticky; top: 16px; }
+  .group { margin-bottom: 18px; }
+  .group h3 { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  .ctl { margin-bottom: 12px; }
+  .ctl label { display: flex; justify-content: space-between; font-size: 13px; color: var(--dim); margin-bottom: 4px; }
+  .ctl label b { color: var(--ink); font-family: 'Courier Prime', monospace; font-weight: 700; }
+  input[type=range] { width: 100%; accent-color: var(--green); height: 22px; }
+
+  .cards { display: grid; gap: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 3px 3px 0 #cbbd9a66; padding: 20px 22px; }
+  .card h2 { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
+  .big { font-family: 'Courier Prime', monospace; font-size: clamp(24px, 3vw, 34px); font-weight: 700; }
+  .big small { font-size: 14px; color: var(--dim); font-weight: 400; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 560px) { .vs { grid-template-columns: 1fr; } }
+  .scenA .big { color: var(--amber); }
+  .scenB .big { color: var(--green); }
+  .scen { background: var(--panel2); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; }
+  .scen h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; border-top: 1px dashed var(--line); }
+  .row:first-of-type { border-top: 0; }
+  .row span:last-child { font-family: 'Courier Prime', monospace; }
+  .ratio { text-align: center; padding: 18px; border: 3px double var(--green); background: #4f7a2810; }
+  .ratio .big { font-size: clamp(34px, 5vw, 52px); color: var(--green); }
+  .bar { height: 14px; background: var(--panel2); border: 1px solid var(--line); border-radius: 3px; position: relative; margin-top: 8px; overflow: hidden; }
+  .bar i { position: absolute; inset: 0 auto 0 0; background: var(--amber); }
+  .bar.g i { background: var(--green); }
+  .warn { color: var(--red); font-weight: 700; }
+  .ok { color: var(--green); }
+  .foot { color: var(--dim); font-size: 13px; font-style: italic; margin-top: 28px; border-top: 4px double var(--line); padding-top: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <h1>The Sensor Data Almanac <em>— batch vs streaming</em></h1>
+    <p>Edge device on a tractor: LiDAR + 2× RGB + GNSS/IMU. Slide the assumptions; the math has no opinions.</p>
+  </header>
+
+  <div class="layout">
+    <aside class="controls">
+      <div class="group">
+        <h3>Operation</h3>
+        <div class="ctl"><label>Shift <b>{{ shift }} h</b></label>
+          <input type="range" min="4" max="14" step="0.5" v-model.number="shift"></div>
+        <div class="ctl"><label>Speed <b>{{ speed }} km/h</b></label>
+          <input type="range" min="2" max="12" step="0.5" v-model.number="speed"></div>
+        <div class="ctl"><label>Row swath <b>{{ swath }} m</b></label>
+          <input type="range" min="2" max="10" step="0.5" v-model.number="swath"></div>
+        <div class="ctl"><label>Tree spacing <b>{{ treeSpacing }} m</b></label>
+          <input type="range" min="2" max="12" step="0.5" v-model.number="treeSpacing"></div>
+      </div>
+      <div class="group">
+        <h3>Sensors (averages)</h3>
+        <div class="ctl"><label>LiDAR points <b>{{ fmtN(lidarPps) }}/s</b></label>
+          <input type="range" min="100000" max="2600000" step="50000" v-model.number="lidarPps"></div>
+        <div class="ctl"><label>Bytes / point <b>{{ bytesPerPt }} B</b></label>
+          <input type="range" min="12" max="28" step="2" v-model.number="bytesPerPt"></div>
+        <div class="ctl"><label>Cloud compression <b>{{ pcdComp }}:1</b></label>
+          <input type="range" min="1" max="8" step="0.5" v-model.number="pcdComp"></div>
+        <div class="ctl"><label>RGB cams (2K) <b>{{ cams }}× @ {{ fps }} fps</b></label>
+          <input type="range" min="1" max="4" step="1" v-model.number="cams"></div>
+        <div class="ctl"><label>JPEG ratio <b>{{ jpeg }}:1</b></label>
+          <input type="range" min="4" max="20" step="1" v-model.number="jpeg"></div>
+      </div>
+      <div class="group">
+        <h3>Edge output</h3>
+        <div class="ctl"><label>Record / tree <b>{{ fmtB(detBytes) }}</b></label>
+          <input type="range" min="500" max="10000" step="500" v-model.number="detBytes"></div>
+        <div class="ctl"><label>Crop / tree <b>{{ fmtB(cropBytes) }}</b></label>
+          <input type="range" min="0" max="500000" step="25000" v-model.number="cropBytes"></div>
+      </div>
+      <div class="group">
+        <h3>Infra</h3>
+        <div class="ctl"><label>Field link <b>{{ fieldMbps }} Mbps</b></label>
+          <input type="range" min="1" max="50" step="1" v-model.number="fieldMbps"></div>
+        <div class="ctl"><label>Hangar link <b>{{ hangarMbps }} Mbps</b></label>
+          <input type="range" min="50" max="1000" step="25" v-model.number="hangarMbps"></div>
+        <div class="ctl"><label>SSD endurance <b>{{ tbw }} TBW</b></label>
+          <input type="range" min="150" max="3000" step="50" v-model.number="tbw"></div>
+        <div class="ctl"><label>Inference speed <b>{{ inferFps }} fps</b></label>
+          <input type="range" min="5" max="120" step="5" v-model.number="inferFps"></div>
+      </div>
+    </aside>
+
+    <section class="cards">
+      <div class="ratio card">
+        <h2>Data reduction at the edge</h2>
+        <div class="big">{{ fmtN(Math.round(ratio)) }} : 1</div>
+        <p style="color:var(--dim);font-size:13px;margin-top:6px">
+          {{ fmtB(totalA) }} stored-everything vs {{ fmtB(totalB) }} processed —
+          over {{ fmtN(Math.round(ha)) }} ha, {{ fmtN(Math.round(trees)) }} trees
+        </p>
+      </div>
+
+      <div class="vs">
+        <div class="scen scenA">
+          <h4>A — store all, upload after</h4>
+          <div class="big">{{ fmtB(totalA) }}<small> /shift</small></div>
+          <div class="row"><span>per hectare</span><span>{{ fmtB(totalA / ha) }}</span></div>
+          <div class="row"><span>LiDAR (compressed)</span><span>{{ fmtB(lidarComp) }}</span></div>
+          <div class="row"><span>RGB jpeg</span><span>{{ fmtB(rgbJpeg) }}</span></div>
+          <div class="row"><span>upload @ hangar</span><span :class="{warn: upAhangar > 8}">{{ fmtH(upAhangar) }}</span></div>
+          <div class="row"><span>upload @ field link</span><span class="warn">{{ fmtH(upAfield) }}</span></div>
+          <div class="row"><span>disk write rate</span><span>{{ (rateA/1e6).toFixed(1) }} MB/s ×{{ shift }}h</span></div>
+          <div class="row"><span>SSD dead in</span><span :class="ssdDaysA < 750 ? 'warn' : ''">{{ fmtN(Math.round(ssdDaysA)) }} days</span></div>
+          <div class="row"><span>1 TB drive full in</span><span :class="fullDays < 3 ? 'warn' : ''">{{ fullDays.toFixed(1) }} days</span></div>
+        </div>
+        <div class="scen scenB">
+          <h4>B — process at edge, stream</h4>
+          <div class="big">{{ fmtB(totalB) }}<small> /shift</small></div>
+          <div class="row"><span>per hectare</span><span>{{ fmtB(totalB / ha) }}</span></div>
+          <div class="row"><span>tree records</span><span>{{ fmtB(det) }}</span></div>
+          <div class="row"><span>tree crops</span><span>{{ fmtB(crops) }}</span></div>
+          <div class="row"><span>upload @ field link</span><span class="ok">{{ fmtH(upBfield) }}</span></div>
+          <div class="row"><span>disk write rate</span><span>{{ (rateB/1e6).toFixed(2) }} MB/s</span></div>
+          <div class="row"><span>SSD dead in</span><span class="ok">{{ fmtN(Math.round(ssdDaysB)) }} days</span></div>
+          <div class="row"><span>1 TB drive full in</span><span class="ok">{{ fmtN(Math.round(1e12/ (totalB))) }} days</span></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h2>Jetson duty cycle</h2>
+          <div class="row"><span>frames / shift</span><span>{{ fmtN(frames) }}</span></div>
+          <div class="row"><span>inference work</span><span>{{ fmtH(inferH) }}</span></div>
+          <div class="row"><span>streaming GPU duty</span><span class="ok">{{ (duty*100).toFixed(1) }}%</span></div>
+          <div class="bar g"><i :style="{width: Math.min(duty*100,100)+'%'}"></i></div>
+          <div class="row" style="margin-top:10px"><span>if batched: post-shift crunch</span><span class="warn">{{ fmtH(inferH) }} on battery</span></div>
+          <div class="row"><span>GPU idle during shift</span><span class="warn">100%</span></div>
+        </div>
+        <div class="card">
+          <h2>Daily writes (2× write amp)</h2>
+          <div class="row"><span>Scenario A</span><span>{{ fmtB(totalA*2) }}/day</span></div>
+          <div class="bar"><i :style="{width:'100%'}"></i></div>
+          <div class="row" style="margin-top:10px"><span>Scenario B</span><span>{{ fmtB(totalB*2) }}/day</span></div>
+          <div class="bar g"><i :style="{width: Math.max(totalB/totalA*100, 0.5)+'%'}"></i></div>
+          <div class="row" style="margin-top:10px"><span>endurance gap</span><span class="ok">{{ fmtN(Math.round(ssdDaysB/ssdDaysA)) }}× drive life</span></div>
+        </div>
+      </div>
+
+      <p class="foot">
+        Single average per component: one generic LiDAR (points/s × bytes/point), 2K = 2048×1536×3 B raw,
+        GNSS+IMU @1 Hz (200 B) — included but negligible. Scenario A already assumes jpeg’d RGB and
+        compressed point clouds (favourable to A). No vendors, no conclusions — adjust and read.
+      </p>
+    </section>
+  </div>
+</main>
+
+<script>
+const { createApp } = Vue;
+createApp({
+  data: () => ({
+    shift: 10, speed: 5, swath: 5, treeSpacing: 5,
+    lidarPps: 400000, bytesPerPt: 18, pcdComp: 3,
+    cams: 2, fps: 1, jpeg: 10,
+    detBytes: 2000, cropBytes: 150000,
+    fieldMbps: 5, hangarMbps: 200, tbw: 800, inferFps: 30,
+  }),
+  computed: {
+    sec() { return this.shift * 3600 },
+    distM() { return this.speed * 1000 * this.shift },
+    ha() { return this.distM * this.swath / 10000 },
+    trees() { return this.distM / this.treeSpacing },
+    rgbJpeg() { return this.cams * this.fps * this.sec * (2048 * 1536 * 3) / this.jpeg },
+    nav() { return this.sec * 200 },
+    lidarComp() { return this.lidarPps * this.bytesPerPt * this.sec / this.pcdComp },
+    totalA() { return this.rgbJpeg + this.nav + this.lidarComp },
+    det() { return this.trees * this.detBytes },
+    crops() { return this.trees * this.cropBytes },
+    totalB() { return this.det + this.crops + this.nav },
+    ratio() { return this.totalA / this.totalB },
+    upAhangar() { return this.totalA * 8 / (this.hangarMbps * 1e6) / 3600 },
+    upAfield() { return this.totalA * 8 / (this.fieldMbps * 1e6) / 3600 },
+    upBfield() { return this.totalB * 8 / (this.fieldMbps * 1e6) / 3600 },
+    rateA() { return this.totalA / this.sec },
+    rateB() { return this.totalB / this.sec },
+    ssdDaysA() { return this.tbw * 1e12 / (this.totalA * 2) },
+    ssdDaysB() { return this.tbw * 1e12 / (this.totalB * 2) },
+    fullDays() { return 1e12 / this.totalA },
+    frames() { return this.cams * this.fps * this.sec },
+    inferH() { return this.frames / this.inferFps / 3600 },
+    duty() { return (this.frames / this.inferFps) / this.sec },
+  },
+  methods: {
+    fmtB(b) {
+      const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let i = 0;
+      while (b >= 1024 && i < 4) { b /= 1024; i++ }
+      return b.toFixed(b >= 100 ? 0 : b >= 10 ? 1 : 2) + ' ' + u[i];
+    },
+    fmtH(h) {
+      if (h < 1) return Math.round(h * 60) + ' min';
+      if (h > 72) return (h / 24).toFixed(1) + ' days';
+      return h.toFixed(1) + ' h';
+    },
+    fmtN: n => n.toLocaleString('en-US'),
+  },
+}).mount('#app');
+</script>
+</body>
+</html>
