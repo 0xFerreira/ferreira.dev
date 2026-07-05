@@ -9,7 +9,7 @@
     <meta property="og:description" content="manifesto, prototypes, writing">
     <meta property="og:url" content="https://ferreira.dev/">
     <meta property="og:type" content="website">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%2300d9ff' stroke-width='2'%3E%3Crect x='4' y='10' width='18' height='18'/%3E%3Crect x='10' y='4' width='18' height='18'/%3E%3Cpath d='M4 10 10 4M22 10 28 4M4 28 10 22M22 28 28 22'/%3E%3C/g%3E%3C/svg%3E">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%2366d9ef' stroke-width='2'%3E%3Crect x='4' y='10' width='18' height='18'/%3E%3Crect x='10' y='4' width='18' height='18'/%3E%3Cpath d='M4 10 10 4M22 10 28 4M4 28 10 22M22 28 28 22'/%3E%3C/g%3E%3C/svg%3E">
     <style>
         * {
             margin: 0;
@@ -19,8 +19,8 @@
 
         body {
             font-family: 'Courier New', monospace;
-            background: #0a0a0a;
-            color: #e0e0e0;
+            background: #272822;
+            color: #f8f8f2;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -49,13 +49,13 @@
             font-weight: 400;
             letter-spacing: -0.02em;
             margin-bottom: 4.5rem;
-            color: #ffffff;
+            color: #f8f8f2;
         }
 
         .manifesto {
             font-size: 1.1rem;
             line-height: 1.8;
-            color: #a0a0a0;
+            color: #d8d8d2;
             font-weight: 300;
         }
 
@@ -64,14 +64,14 @@
         }
 
         .manifesto a {
-            color: #8a8a8a;
+            color: #a0a094;
             text-decoration: none;
             font-size: 0.95em;
             transition: color 0.2s ease;
         }
 
         .manifesto a:hover {
-            color: #00d9ff;
+            color: #66d9ef;
         }
 
         .peace {
@@ -81,13 +81,13 @@
         .prototypes {
             margin-top: 3rem;
             padding-top: 2rem;
-            border-top: 1px solid #333;
+            border-top: 1px solid #49483e;
         }
 
         .prototypes h2 {
             font-size: 1rem;
             font-weight: 400;
-            color: #666;
+            color: #95917f;
             margin-bottom: 1rem;
             text-transform: lowercase;
         }
@@ -100,13 +100,13 @@
         }
 
         .prototypes a {
-            color: #00d9ff;
+            color: #66d9ef;
             text-decoration: none;
             transition: color 0.2s ease;
         }
 
         .prototypes a:hover {
-            color: #ffffff;
+            color: #f8f8f2;
         }
 
     </style>
@@ -209,7 +209,7 @@
                 // Dim edges whose midpoint is further back
                 const avgZ = (projected[i][2] + projected[j][2]) / 2;
                 const alpha = 0.5 + 0.5 * ((s - avgZ) / (2 * s));
-                ctx.strokeStyle = `rgba(0, 217, 255, ${alpha})`;
+                ctx.strokeStyle = `rgba(102, 217, 239, ${alpha})`;
                 ctx.beginPath();
                 ctx.moveTo(projected[i][0], projected[i][1]);
                 ctx.lineTo(projected[j][0], projected[j][1]);
