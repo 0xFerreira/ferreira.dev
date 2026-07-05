@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>guilherme_ferreira</title>
+    <title>Guilherme Ferreira</title>
+    <meta name="description" content="Guilherme Ferreira — manifesto, prototypes, writing">
+    <meta property="og:title" content="Guilherme Ferreira">
+    <meta property="og:description" content="manifesto, prototypes, writing">
+    <meta property="og:url" content="https://ferreira.dev/">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%2300d9ff' stroke-width='2'%3E%3Crect x='4' y='10' width='18' height='18'/%3E%3Crect x='10' y='4' width='18' height='18'/%3E%3Cpath d='M4 10 10 4M22 10 28 4M4 28 10 22M22 28 28 22'/%3E%3C/g%3E%3C/svg%3E">
     <style>
         * {
             margin: 0;
@@ -17,11 +23,9 @@
             color: #e0e0e0;
             min-height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
             padding: 2rem;
             position: relative;
-            overflow: hidden;
         }
 
         #cubes {
@@ -41,10 +45,10 @@
         }
 
         h1 {
-            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            font-size: 1.25rem;
             font-weight: 400;
             letter-spacing: -0.02em;
-            margin-bottom: 2rem;
+            margin-bottom: 4.5rem;
             color: #ffffff;
         }
 
@@ -55,8 +59,12 @@
             font-weight: 300;
         }
 
+        .manifesto p + p {
+            margin-top: 1.8em;
+        }
+
         .manifesto a {
-            color: #6b6b6b;
+            color: #8a8a8a;
             text-decoration: none;
             font-size: 0.95em;
             transition: color 0.2s ease;
@@ -67,7 +75,6 @@
         }
 
         .peace {
-            display: block;
             text-align: right;
         }
 
@@ -102,28 +109,23 @@
             color: #ffffff;
         }
 
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2.5rem;
-            }
-        }
     </style>
 </head>
 <body>
-    <canvas id="cubes"></canvas>
+    <canvas id="cubes" aria-hidden="true"></canvas>
     
     <div class="container">
-        <h1>guilherme_ferreira</h1>
-        <p class="manifesto">
-            the world now uses yyyy-mm-dd hh:mm:ss <a href="https://en.wikipedia.org/wiki/ISO_8601" target="_blank">[iso 8601]</a><br><br>
-            everywhere is utc+0, timezones indicate local daylight, not the underlying shared time <a href="https://en.wikipedia.org/wiki/Coordinated_Universal_Time" target="_blank">[utc]</a><br><br>
-            everyone uses metric <a href="https://en.wikipedia.org/wiki/International_System_of_Units" target="_blank">[si]</a><br><br>
-            every month has 4 weeks, there are 13 months, every date falls on the same day of the week <a href="https://en.wikipedia.org/wiki/International_Fixed_Calendar" target="_blank">[ifc]</a><br><br>
-            esperanto is cute. english is the lingua franca. local languages are preserved for culture <a href="https://en.wikipedia.org/wiki/Lingua_franca" target="_blank">[lingua franca]</a><br><br>
-            push based advertisement is punished by reeducation camps <a href="https://en.wikipedia.org/wiki/Attention_economy" target="_blank">[attention economy]</a><br><br>
-            microservices are widely acknowledged as war crimes <a href="https://grugbrain.dev/" target="_blank">[grug]</a><br><br>
-            <span class="peace">you're at peace</span>
-        </p>
+        <h1>Guilherme Ferreira</h1>
+        <div class="manifesto">
+            <p>the world now uses yyyy-mm-dd hh:mm:ss <a href="https://en.wikipedia.org/wiki/ISO_8601" target="_blank">[iso 8601]</a></p>
+            <p>everywhere is utc+0, timezones indicate local daylight, not the underlying shared time <a href="https://en.wikipedia.org/wiki/Coordinated_Universal_Time" target="_blank">[utc]</a></p>
+            <p>everyone uses metric <a href="https://en.wikipedia.org/wiki/International_System_of_Units" target="_blank">[si]</a></p>
+            <p>every month has 4 weeks, there are 13 months, every date falls on the same day of the week <a href="https://en.wikipedia.org/wiki/International_Fixed_Calendar" target="_blank">[ifc]</a></p>
+            <p>esperanto is cute. english is the lingua franca. local languages are preserved for culture <a href="https://en.wikipedia.org/wiki/Lingua_franca" target="_blank">[lingua franca]</a></p>
+            <p>push based advertisement is heavily taxed <a href="https://en.wikipedia.org/wiki/Attention_economy" target="_blank">[attention economy]</a></p>
+            <p>microservices require a permit, and a very good reason <a href="https://grugbrain.dev/" target="_blank">[grug]</a></p>
+            <p class="peace">you're at peace</p>
+        </div>
 
         <div class="prototypes">
             <h2>prototypes</h2>
@@ -215,19 +217,30 @@
             });
         }
         
-        function animate() {
+        function render() {
             ctx.clearRect(0, 0, width, height);
-            
+            cubes.forEach(drawCube);
+        }
+
+        function animate() {
             cubes.forEach(cube => {
                 cube.rotX += cube.speedX;
                 cube.rotY += cube.speedY;
-                drawCube(cube);
             });
-            
+            render();
             requestAnimationFrame(animate);
         }
-        
-        animate();
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            cubes.forEach((cube, i) => {
+                cube.rotX = 0.6 + i * 0.7;
+                cube.rotY = 0.4 + i * 0.9;
+            });
+            render();
+            window.addEventListener('resize', render);
+        } else {
+            animate();
+        }
     </script>
 </body>
 </html>
