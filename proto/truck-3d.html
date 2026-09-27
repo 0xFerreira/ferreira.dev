@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citrus Spray Truck 3D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            background: #87CEEB;
+            font-family: 'Arial', sans-serif;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .hud {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 10px;
+            display: none;  /* Hidden */
+            gap: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            z-index: 10;
+        }
+        .score { color: #3CB371; }
+        .missed { color: #FF6347; }
+        .distance { color: #FFD700; }
+        .instructions {
+            position: fixed;
+            top: 100px;
+            left: 20px;
+            padding: 20px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 10px;
+            color: white;
+            max-width: 300px;
+            z-index: 10;
+            display: none;  /* Hidden */
+        }
+        .keys {
+            margin-top: 10px;
+        }
+        .key-group {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .key {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 2px;
+            background: #333;
+            color: white;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .key.active {
+            background: #FFD700;
+            color: #000;
+        }
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            display: none !important;  /* Always hidden */
+            z-index: 20;
+        }
+        .game-over h2 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #FFD700;
+        }
+        .game-over button {
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #3CB371;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .game-over button:hover {
+            background: #2E8B57;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" data-engine="three.js r160" width="2400" height="1266" style="width: 2400px; height: 1266px;"></canvas>
+
+    <div class="hud">
+        <div class="score">Score: <span id="score">0</span></div>
+        <div class="missed">Missed: <span id="missed">0</span></div>
+        <div class="distance">Distance: <span id="distance">154</span>m</div>
+    </div>
+
+    <div class="instructions">
+        <h2>Controls</h2>
+        <div class="keys">
+            <div class="key-group">
+                <strong>LEFT NOZZLES:</strong><br>
+                <span class="key active" id="key-q">Q</span> High<br>
+                <span class="key active" id="key-a">A</span> Mid<br>
+                <span class="key active" id="key-z">Z</span> Low
+            </div>
+            <div class="key-group">
+                <strong>RIGHT NOZZLES:</strong><br>
+                <span class="key" id="key-u">U</span> High<br>
+                <span class="key" id="key-j">J</span> Mid<br>
+                <span class="key active" id="key-m">M</span> Low
+            </div>
+        </div>
+        <p style="margin-top: 15px; font-size: 14px; opacity: 0.8;">
+            Match tree height with correct nozzle!
+        </p>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <h2>Game Over!</h2>
+        <p style="font-size: 24px; margin: 10px 0;">Final Score: <span id="finalScore">0</span></p>
+        <p style="font-size: 18px;">Trees Sprayed: <span id="treesHit">0</span></p>
+        <p style="font-size: 18px;">Distance: <span id="finalDistance">0</span>m</p>
+        <button onclick="restartGame()">Play Again</button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // Setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 50, 250);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+            canvas: document.getElementById('gameCanvas'),
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Game state
+        let score = 0;
+        let missed = 0;
+        let distance = 0;
+        let gameRunning = true;
+        let trees = [];
+        let sprays = [];
+        let activeKeys = new Set();
+        let frameCount = 0;
+        let treesInSprayZone = new Map(); // Track trees currently in spray zone
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        // Visual sun (at the end of the horizon on the right)
+        const sunPosition = new THREE.Vector3(80, 25, -200);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        sunLight.position.copy(sunPosition);  // Position light at sun location
+        sunLight.castShadow = true;
+        sunLight.shadow.camera.left = -250;
+        sunLight.shadow.camera.right = 250;
+        sunLight.shadow.camera.top = 250;
+        sunLight.shadow.camera.bottom = -250;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        scene.add(sunLight);
+
+        // Sun sphere
+        const sunGeometry = new THREE.SphereGeometry(12, 32, 32);
+        const sunMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFFFFAA,
+            fog: false  // Don't let fog affect the sun
+        });
+        const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+        sun.position.copy(sunPosition);
+        scene.add(sun);
+
+        // Sun glow (larger transparent sphere)
+        const glowGeometry = new THREE.SphereGeometry(18, 32, 32);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFFDD88,
+            transparent: true,
+            opacity: 0.3,
+            fog: false
+        });
+        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        glow.position.copy(sunPosition);
+        scene.add(glow);
+
+        // Sun rays
+        const rayCount = 12;
+        const rayGroup = new THREE.Group();
+
+        for (let i = 0; i < rayCount; i++) {
+            const angle = (i / rayCount) * Math.PI * 2;
+
+            // Create triangular ray
+            const rayGeometry = new THREE.BufferGeometry();
+            const rayLength = 25;
+
+            const vertices = new Float32Array([
+                0, 0, 0,  // Tip (at sun)
+                Math.cos(angle - 0.08) * rayLength, Math.sin(angle - 0.08) * rayLength, 0,  // Base left
+                Math.cos(angle + 0.08) * rayLength, Math.sin(angle + 0.08) * rayLength, 0   // Base right
+            ]);
+
+            rayGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+
+            const rayMaterial = new THREE.MeshBasicMaterial({
+                color: 0xFFEE99,
+                transparent: true,
+                opacity: 0.5,
+                side: THREE.DoubleSide,
+                fog: false
+            });
+
+            const ray = new THREE.Mesh(rayGeometry, rayMaterial);
+            rayGroup.add(ray);
+        }
+
+        rayGroup.position.copy(sunPosition);
+        rayGroup.lookAt(camera.position);  // Face the camera
+        scene.add(rayGroup);
+
+        // Animate sun rays rotation
+        function animateSunRays() {
+            rayGroup.rotation.z += 0.002;
+        }
+
+        // Clouds
+        const clouds = [];
+
+        function createCloud(x, y, z) {
+            const cloudGroup = new THREE.Group();
+
+            // Cloud material - white and slightly transparent
+            const cloudMaterial = new THREE.MeshLambertMaterial({
+                color: 0xFFFFFF,
+                transparent: true,
+                opacity: 0.8,
+                fog: true
+            });
+
+            // Create cloud from multiple spheres
+            const numPuffs = 5 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < numPuffs; i++) {
+                const puffSize = 3 + Math.random() * 2;
+                const puffGeometry = new THREE.SphereGeometry(puffSize, 8, 8);
+                const puff = new THREE.Mesh(puffGeometry, cloudMaterial);
+
+                puff.position.set(
+                    (Math.random() - 0.5) * 8,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 8
+                );
+
+                puff.scale.x = 1 + Math.random() * 0.5;
+                puff.scale.y = 0.6 + Math.random() * 0.4;
+                puff.scale.z = 1 + Math.random() * 0.5;
+
+                cloudGroup.add(puff);
+            }
+
+            cloudGroup.position.set(x, y, z);
+            scene.add(cloudGroup);
+
+            return {
+                group: cloudGroup,
+                speed: 0.005 + Math.random() * 0.01,  // Slower drift speed
+                initialX: x
+            };
+        }
+
+        // Spawn clouds at various positions - near the horizon
+        for (let i = 0; i < 20; i++) {
+            const cloud = createCloud(
+                (Math.random() - 0.5) * 600,  // Spread across sky
+                22 + Math.random() * 10,       // Height 22-32 (near horizon)
+                -300 + Math.random() * 200     // Distance -300 to -100 (further away)
+            );
+            clouds.push(cloud);
+        }
+
+        // Ground - much wider for orchard and extended to horizon
+        const groundGeometry = new THREE.PlaneGeometry(800, 800);
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x6B8E23 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Create multiple parallel dirt roads
+        const roads = [];
+        const trackPairs = [];
+        const roadWidth = 6;
+        const rowSpacing = 12; // Distance between tree rows
+        const numRows = 31; // Number of tree rows - fills the viewport
+        const centerOffset = -((numRows - 1) * rowSpacing) / 2;
+
+        for (let i = 0; i < numRows; i++) {
+            const xPos = centerOffset + i * rowSpacing;
+
+            // Dirt road
+            const roadGeometry = new THREE.PlaneGeometry(roadWidth, 800);
+            const roadMaterial = new THREE.MeshLambertMaterial({
+                color: 0x8B7355,
+                roughness: 1.0
+            });
+            const road = new THREE.Mesh(roadGeometry, roadMaterial);
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(xPos, 0.01, 0);
+            road.receiveShadow = true;
+            scene.add(road);
+            roads.push(road);
+
+            // Tire tracks for each road
+            const trackGeometry = new THREE.PlaneGeometry(1, 800);
+            const trackMaterial = new THREE.MeshBasicMaterial({
+                color: 0x6B5D4F,
+                transparent: true,
+                opacity: 0.3
+            });
+            const leftTrack = new THREE.Mesh(trackGeometry, trackMaterial);
+            leftTrack.rotation.x = -Math.PI / 2;
+            leftTrack.position.set(xPos - 1.5, 0.03, 0);
+            scene.add(leftTrack);
+
+            const rightTrack = leftTrack.clone();
+            rightTrack.position.x = xPos + 1.5;
+            scene.add(rightTrack);
+
+            trackPairs.push({ left: leftTrack, right: rightTrack });
+        }
+
+        // Dirt patches removed
+
+        // Tree row positions (between roads)
+        const treeRowPositions = [];
+        for (let i = 0; i < numRows - 1; i++) {
+            const leftRoadX = centerOffset + i * rowSpacing;
+            const rightRoadX = centerOffset + (i + 1) * rowSpacing;
+            const treeRowX = (leftRoadX + rightRoadX) / 2;
+            treeRowPositions.push(treeRowX);
+        }
+
+        // Define our lane (the two rows closest to the truck on left and right)
+        const ourLaneLeft = treeRowPositions.find(x => x < 0 && Math.abs(x) < rowSpacing);
+        const ourLaneRight = treeRowPositions.find(x => x > 0 && Math.abs(x) < rowSpacing);
+        const ourLanePositions = [ourLaneLeft, ourLaneRight];
+
+        // Create tractor (John Deere style)
+        const truckGroup = new THREE.Group();
+
+        // John Deere colors
+        const deereGreen = 0x367C2B;
+        const deereYellow = 0xFFDE00;
+
+        // Tractor body (green) - raised to sit on top of wheels, made longer, narrower
+        const bodyGeometry = new THREE.BoxGeometry(4.5, 2.5, 8); // Width reduced from 6 to 4.5
+        const bodyMaterial = new THREE.MeshPhongMaterial({ color: deereGreen });
+        const truckBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        truckBody.position.y = 2.45;
+        truckBody.castShadow = true;
+        truckGroup.add(truckBody);
+
+        // Yellow stripe on body
+        const bodyStripeGeometry = new THREE.BoxGeometry(4.6, 0.4, 8.1);
+        const bodyStripeMaterial = new THREE.MeshPhongMaterial({ color: deereYellow });
+        const bodyStripe = new THREE.Mesh(bodyStripeGeometry, bodyStripeMaterial);
+        bodyStripe.position.y = 2.45;
+        truckGroup.add(bodyStripe);
+
+        // Cabin (green) - taller, moved forward
+        const cabinGeometry = new THREE.BoxGeometry(3.5, 3, 3.8); // Width reduced from 4 to 3.5
+        const cabinMaterial = new THREE.MeshPhongMaterial({ color: deereGreen });
+        const cabin = new THREE.Mesh(cabinGeometry, cabinMaterial);
+        cabin.position.set(0, 4.2, -2.5); // Moved forward from -0.1 to -2.5
+        cabin.castShadow = true;
+        truckGroup.add(cabin);
+
+        // Yellow accents on cabin - multiple stripes
+        const accentGeometry = new THREE.BoxGeometry(3.6, 0.3, 3.9);
+        const accentMaterial = new THREE.MeshPhongMaterial({ color: deereYellow });
+
+        // Bottom accent
+        const accentBottom = new THREE.Mesh(accentGeometry, accentMaterial);
+        accentBottom.position.set(0, 3.2, -2.5); // Moved forward with cabin
+        truckGroup.add(accentBottom);
+
+        // Top accent
+        const accentTop = new THREE.Mesh(accentGeometry, accentMaterial);
+        accentTop.position.set(0, 5.2, -2.5); // Moved forward with cabin
+        truckGroup.add(accentTop);
+
+        // Windows - adjusted for taller cabin and forward position
+        const windowGeometry = new THREE.PlaneGeometry(1.5, 1.5);
+        const windowMaterial = new THREE.MeshPhongMaterial({
+            color: 0x87CEEB,
+            transparent: true,
+            opacity: 0.7
+        });
+        const leftWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+        leftWindow.position.set(-1.75, 4.4, -2.5); // Moved forward with cabin, adjusted x for narrower width
+        leftWindow.rotation.y = -Math.PI / 2;
+        truckGroup.add(leftWindow);
+
+        const rightWindow = leftWindow.clone();
+        rightWindow.position.set(1.75, 4.4, -2.5); // Moved forward with cabin
+        rightWindow.rotation.y = Math.PI / 2;
+        truckGroup.add(rightWindow);
+
+        // Front window - taller
+        const frontWindow = new THREE.Mesh(
+            new THREE.PlaneGeometry(3, 2),
+            windowMaterial
+        );
+        frontWindow.position.set(0, 4.7, -4.4); // Moved to front of cabin
+        frontWindow.rotation.x = Math.PI / 6;
+        truckGroup.add(frontWindow);
+
+        // Add AgScan logo decal on the roof of the cabin
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('https://assets.agscan.com.br/agscan_logo_bottom.svg', function(texture) {
+            const logoMaterial = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+
+            // Roof logo - visible from camera above
+            const logoGeometry = new THREE.PlaneGeometry(2.5, 0.8);
+            const roofLogo = new THREE.Mesh(logoGeometry, logoMaterial);
+            roofLogo.position.set(0, 5.71, -2.5); // On top of cabin (cabin height 3, center at 4.2, so top at 5.7)
+            roofLogo.rotation.x = -Math.PI / 2; // Flat on roof
+            truckGroup.add(roofLogo);
+        });
+
+        // Tank (white/silver) - narrower to match truck width
+        const tankGeometry = new THREE.CylinderGeometry(1.2, 1.2, 4, 16); // Width reduced from 5 to 4
+        const tankMaterial = new THREE.MeshPhongMaterial({ color: 0xE8E8E8 });
+        const tank = new THREE.Mesh(tankGeometry, tankMaterial);
+        tank.rotation.z = Math.PI / 2;
+        tank.position.set(0, 2.7, 1.5); // Raised and positioned toward rear
+        tank.castShadow = true;
+        truckGroup.add(tank);
+
+        // Wheels (black tires with yellow rims) - adjusted for narrower truck
+        const wheelPositions = [
+            { x: -2.0, z: -2.5 }, // Front left - moved inward and forward with cabin
+            { x: 2.0, z: -2.5 },  // Front right - moved inward and forward with cabin
+            { x: -2.0, z: 2.5 },  // Rear left - moved inward and back
+            { x: 2.0, z: 2.5 }    // Rear right - moved inward and back
+        ];
+
+        wheelPositions.forEach(pos => {
+            // Tire
+            const tireGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.5, 16);
+            const tireMaterial = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
+            const tire = new THREE.Mesh(tireGeometry, tireMaterial);
+            tire.rotation.z = Math.PI / 2;
+            tire.position.set(pos.x, 0.6, pos.z);
+            tire.castShadow = true;
+            truckGroup.add(tire);
+
+            // Yellow rim
+            const rimGeometry = new THREE.CylinderGeometry(0.35, 0.35, 0.52, 16);
+            const rimMaterial = new THREE.MeshPhongMaterial({ color: deereYellow });
+            const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+            rim.rotation.z = Math.PI / 2;
+            rim.position.set(pos.x, 0.6, pos.z);
+            truckGroup.add(rim);
+        });
+
+        // Nozzle definitions - positioned to intersect with narrower truck body
+        const nozzleConfig = {
+            'q': { side: 'left', height: 'high', pos: new THREE.Vector3(-2.0, 5.0, -2.5) },  // High nozzle on cabin
+            'a': { side: 'left', height: 'mid', pos: new THREE.Vector3(-2.0, 3.7, 0) },      // Mid nozzle on body
+            'z': { side: 'left', height: 'low', pos: new THREE.Vector3(-2.0, 2.5, 0) },      // Low nozzle on body
+            'u': { side: 'right', height: 'high', pos: new THREE.Vector3(2.0, 5.0, -2.5) },  // High nozzle on cabin
+            'j': { side: 'right', height: 'mid', pos: new THREE.Vector3(2.0, 3.7, 0) },      // Mid nozzle on body
+            'm': { side: 'right', height: 'low', pos: new THREE.Vector3(2.0, 2.5, 0) }       // Low nozzle on body
+        };
+
+        // Create nozzles
+        const nozzles = {};
+        Object.entries(nozzleConfig).forEach(([key, config]) => {
+            const nozzleGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const nozzleMaterial = new THREE.MeshPhongMaterial({
+                color: 0x444444,
+                emissive: 0x000000
+            });
+            const nozzle = new THREE.Mesh(nozzleGeometry, nozzleMaterial);
+            nozzle.position.copy(config.pos);
+            truckGroup.add(nozzle);
+            nozzles[key] = { mesh: nozzle, config: config };
+        });
+
+        truckGroup.position.set(0, 0, 10);
+        scene.add(truckGroup);
+
+        // Camera behind truck - higher and farther to see all rows
+        const cameraDefaults = {
+            x: 0,
+            y: 20,
+            z: 30,
+            lookAtY: 0
+        };
+        camera.position.set(cameraDefaults.x, cameraDefaults.y, cameraDefaults.z);
+        camera.lookAt(0, cameraDefaults.lookAtY, 0);
+
+        // Camera sway settings
+        let cameraSwayTime = 0;
+        const swaySpeed = 0.3;
+        const swayAmplitude = 3;
+
+        // Tree heights
+        const treeHeights = {
+            'low': { height: 2, color: 0x228B22, fruitColor: 0xFFA500, hasFruit: true },
+            'mid': { height: 3.5, color: 0x32CD32, fruitColor: 0xFF8C00, hasFruit: true },
+            'high': { height: 5, color: 0x3CB371, fruitColor: 0xFF7F00, hasFruit: true },
+            'dead': { height: 3, color: 0x8B7355, fruitColor: null, hasFruit: false }
+        };
+
+        // Shared geometries (created once, reused for all trees) - PERFORMANCE OPTIMIZATION
+        const sharedGeometries = {
+            trunk: new THREE.CylinderGeometry(0.2, 0.3, 1, 6),
+            crownLow: new THREE.SphereGeometry(1, 8, 6),
+            crownMid: new THREE.SphereGeometry(1.75, 8, 6),
+            crownHigh: new THREE.SphereGeometry(2.5, 8, 6),
+            fruit: new THREE.SphereGeometry(0.25, 5, 4)
+        };
+
+        // Shared materials (created once, reused)
+        const sharedMaterials = {
+            trunk: new THREE.MeshPhongMaterial({ color: 0x8B4513 }),
+            crownLow: new THREE.MeshPhongMaterial({ color: 0x228B22 }),
+            crownMid: new THREE.MeshPhongMaterial({ color: 0x32CD32 }),
+            crownHigh: new THREE.MeshPhongMaterial({ color: 0x3CB371 }),
+            // Sprayed versions (green emissive)
+            crownLowSprayed: new THREE.MeshPhongMaterial({ color: 0x228B22, emissive: 0x00FF00, emissiveIntensity: 0.5 }),
+            crownMidSprayed: new THREE.MeshPhongMaterial({ color: 0x32CD32, emissive: 0x00FF00, emissiveIntensity: 0.5 }),
+            crownHighSprayed: new THREE.MeshPhongMaterial({ color: 0x3CB371, emissive: 0x00FF00, emissiveIntensity: 0.5 }),
+            // Fruits
+            fruitLow: new THREE.MeshPhongMaterial({ color: 0xFFA500, emissive: 0xFFA500, emissiveIntensity: 0.3 }),
+            fruitMid: new THREE.MeshPhongMaterial({ color: 0xFF8C00, emissive: 0xFF8C00, emissiveIntensity: 0.3 }),
+            fruitHigh: new THREE.MeshPhongMaterial({ color: 0xFF7F00, emissive: 0xFF7F00, emissiveIntensity: 0.3 })
+        };
+
+        // Helper function to get correct nozzle key for a tree
+        function getNozzleKeyForTree(side, type) {
+            if (side === 'left') {
+                if (type === 'high') return 'q';
+                if (type === 'mid') return 'a';
+                if (type === 'low') return 'z';
+            } else if (side === 'right') {
+                if (type === 'high') return 'u';
+                if (type === 'mid') return 'j';
+                if (type === 'low') return 'm';
+            }
+            return null;
+        }
+
+        // Update active nozzles based on trees in spray zone
+        function updateActiveNozzles() {
+            // Get all unique nozzle keys that should be active
+            const requiredKeys = new Set();
+
+            // Helper to add nozzle and all lower ones
+            function addNozzleWithCascade(nozzleKey) {
+                if (!nozzleKey) return;
+
+                requiredKeys.add(nozzleKey);
+
+                // Cascade: high activates mid and low, mid activates low
+                if (nozzleKey === 'q') {  // Left high
+                    requiredKeys.add('a');  // Left mid
+                    requiredKeys.add('z');  // Left low
+                } else if (nozzleKey === 'a') {  // Left mid
+                    requiredKeys.add('z');  // Left low
+                } else if (nozzleKey === 'u') {  // Right high
+                    requiredKeys.add('j');  // Right mid
+                    requiredKeys.add('m');  // Right low
+                } else if (nozzleKey === 'j') {  // Right mid
+                    requiredKeys.add('m');  // Right low
+                }
+            }
+
+            treesInSprayZone.forEach(nozzleKey => {
+                addNozzleWithCascade(nozzleKey);
+            });
+
+            // Deactivate nozzles that shouldn't be active
+            activeKeys.forEach(key => {
+                if (!requiredKeys.has(key)) {
+                    activeKeys.delete(key);
+                    if (nozzles[key]) {
+                        nozzles[key].mesh.material.emissive.setHex(0x000000);
+                        nozzles[key].mesh.material.emissiveIntensity = 0;
+                        const keyElement = document.getElementById(`key-${key}`);
+                        if (keyElement) keyElement.classList.remove('active');
+                    }
+                }
+            });
+
+            // Activate nozzles that should be active
+            requiredKeys.forEach(key => {
+                if (!activeKeys.has(key)) {
+                    activeKeys.add(key);
+                    if (nozzles[key]) {
+                        nozzles[key].mesh.material.emissive.setHex(0xFFD700);
+                        nozzles[key].mesh.material.emissiveIntensity = 1;
+                        const keyElement = document.getElementById(`key-${key}`);
+                        if (keyElement) keyElement.classList.add('active');
+                    }
+                }
+            });
+        }
+
+        class Tree {
+            constructor(x, type, z, side) {
+                this.x = x;
+                this.side = side;
+                this.type = type;
+                this.hit = false;
+                this.missed = false;
+                this.isInOurLane = ourLanePositions.includes(x);
+                this.opacity = 0; // Start invisible
+                this.fadeInComplete = false;
+                this.fadeOutStarted = false;
+
+                const config = treeHeights[type];
+                this.group = new THREE.Group();
+                this.materials = []; // Track all materials for opacity updates
+
+                // Trunk - clone material for individual opacity control
+                const trunkMaterial = sharedMaterials.trunk.clone();
+                trunkMaterial.transparent = true;
+                const trunk = new THREE.Mesh(sharedGeometries.trunk, trunkMaterial);
+                trunk.position.y = 0.5;
+                // Only cast shadows if in our lane (performance)
+                trunk.castShadow = this.isInOurLane;
+                this.group.add(trunk);
+                this.materials.push(trunkMaterial);
+
+                // Only add crown and fruits for living trees (not dead)
+                if (type !== 'dead') {
+                    // Crown - clone material for individual opacity control
+                    const crownGeometry = type === 'low' ? sharedGeometries.crownLow :
+                                        type === 'mid' ? sharedGeometries.crownMid :
+                                        sharedGeometries.crownHigh;
+                    const baseCrownMaterial = type === 'low' ? sharedMaterials.crownLow :
+                                        type === 'mid' ? sharedMaterials.crownMid :
+                                        sharedMaterials.crownHigh;
+                    const crownMaterial = baseCrownMaterial.clone();
+                    crownMaterial.transparent = true;
+                    const crown = new THREE.Mesh(crownGeometry, crownMaterial);
+                    crown.position.y = 1 + config.height / 2;
+                    // Only cast shadows if in our lane (performance)
+                    crown.castShadow = this.isInOurLane;
+                    this.group.add(crown);
+                    this.crown = crown;
+                    this.crownMaterial = crownMaterial;
+                    this.materials.push(crownMaterial);
+
+                    // Fruits - clone material for individual opacity control
+                    const baseFruitMaterial = type === 'low' ? sharedMaterials.fruitLow :
+                                        type === 'mid' ? sharedMaterials.fruitMid :
+                                        sharedMaterials.fruitHigh;
+
+                    // Fruit count based on tree size
+                    let fruitCount;
+                    if (type === 'low') {
+                        fruitCount = 1;
+                    } else if (type === 'mid') {
+                        fruitCount = 2;
+                    } else if (type === 'high') {
+                        fruitCount = 4;
+                    }
+
+                    // Position fruits at the surface of the crown so they're visible
+                    const crownRadius = config.height / 2;
+                    for (let i = 0; i < fruitCount; i++) {
+                        const fruitMaterial = baseFruitMaterial.clone();
+                        fruitMaterial.transparent = true;
+                        const fruit = new THREE.Mesh(sharedGeometries.fruit, fruitMaterial);
+                        const angle = (i / fruitCount) * Math.PI * 2;
+                        const verticalAngle = (Math.random() - 0.5) * Math.PI * 0.8;
+
+                        // Position at crown surface
+                        const horizontalRadius = crownRadius * Math.cos(verticalAngle);
+                        fruit.position.set(
+                            Math.cos(angle) * horizontalRadius,
+                            1 + config.height / 2 + crownRadius * Math.sin(verticalAngle),
+                            Math.sin(angle) * horizontalRadius
+                        );
+                        this.group.add(fruit);
+                        this.materials.push(fruitMaterial);
+                    }
+                }
+
+                // Position
+                this.group.position.set(x, 0, z);
+
+                scene.add(this.group);
+            }
+
+            update() {
+                // Move toward camera (truck moving forward)
+                this.group.position.z += 0.3;
+
+                // Fade in logic (when tree spawns far away)
+                const fadeInStart = -140;
+                const fadeInEnd = -120;
+                if (this.group.position.z >= fadeInStart && this.group.position.z <= fadeInEnd && !this.fadeInComplete) {
+                    this.opacity = Math.min(1, (this.group.position.z - fadeInStart) / (fadeInEnd - fadeInStart));
+                } else if (this.group.position.z > fadeInEnd && !this.fadeInComplete) {
+                    this.opacity = 1;
+                    this.fadeInComplete = true;
+                }
+
+                // Fade out logic (when tree approaches removal)
+                const fadeOutStart = 25;
+                const fadeOutEnd = 30;
+                if (this.group.position.z >= fadeOutStart && !this.fadeOutStarted) {
+                    this.fadeOutStarted = true;
+                }
+                if (this.fadeOutStarted) {
+                    this.opacity = Math.max(0, 1 - (this.group.position.z - fadeOutStart) / (fadeOutEnd - fadeOutStart));
+                }
+
+                // Apply opacity to all materials
+                this.materials.forEach(material => {
+                    material.opacity = this.opacity;
+                });
+
+                // Auto-activate nozzles for trees in our lane
+                const sprayZoneStart = 5;
+                const sprayZoneEnd = 15;
+                const treeId = this.group.uuid;
+
+                if (this.isInOurLane && this.type !== 'dead' &&
+                    this.group.position.z >= sprayZoneStart &&
+                    this.group.position.z <= sprayZoneEnd) {
+
+                    // Tree is in spray zone
+                    if (!treesInSprayZone.has(treeId)) {
+                        const nozzleKey = getNozzleKeyForTree(this.side, this.type);
+                        if (nozzleKey) {
+                            treesInSprayZone.set(treeId, nozzleKey);
+                            updateActiveNozzles();
+                        }
+                    }
+                } else {
+                    // Tree left spray zone
+                    if (treesInSprayZone.has(treeId)) {
+                        treesInSprayZone.delete(treeId);
+                        updateActiveNozzles();
+                    }
+                }
+
+                // Remove if behind camera
+                if (this.group.position.z > 30) {
+                    // Clean up from tracking
+                    if (treesInSprayZone.has(treeId)) {
+                        treesInSprayZone.delete(treeId);
+                        updateActiveNozzles();
+                    }
+                    scene.remove(this.group);
+                    return false;
+                }
+
+                return true;
+            }
+
+            markHit() {
+                this.hit = true;
+
+                // Only living trees have crowns and give points
+                if (this.type !== 'dead' && this.crown) {
+                    // Clone sprayed material for individual opacity control
+                    const baseSprayedMaterial = this.type === 'low' ? sharedMaterials.crownLowSprayed :
+                                               this.type === 'mid' ? sharedMaterials.crownMidSprayed :
+                                               sharedMaterials.crownHighSprayed;
+
+                    const sprayedMaterial = baseSprayedMaterial.clone();
+                    sprayedMaterial.transparent = true;
+                    sprayedMaterial.opacity = this.opacity; // Match current opacity
+
+                    // Remove old crown material from materials array
+                    const oldMaterialIndex = this.materials.indexOf(this.crownMaterial);
+                    if (oldMaterialIndex > -1) {
+                        this.materials.splice(oldMaterialIndex, 1);
+                    }
+
+                    // Add new sprayed material
+                    this.crown.material = sprayedMaterial;
+                    this.crownMaterial = sprayedMaterial;
+                    this.materials.push(sprayedMaterial);
+
+                    // Scoring disabled
+                    // if (this.isInOurLane) {
+                    //     score += 10;
+                    //     updateHUD();
+                    // }
+                }
+            }
+        }
+
+        class Spray {
+            constructor(key) {
+                this.config = nozzles[key].config;
+                this.particles = [];
+                this.life = 30;
+
+                const nozzleWorldPos = new THREE.Vector3();
+                nozzles[key].mesh.getWorldPosition(nozzleWorldPos);
+
+                // Create particle system
+                const particleCount = 50;
+                const positions = new Float32Array(particleCount * 3);
+                const colors = new Float32Array(particleCount * 3);
+                const sizes = new Float32Array(particleCount);
+
+                for (let i = 0; i < particleCount; i++) {
+                    positions[i * 3] = nozzleWorldPos.x;
+                    positions[i * 3 + 1] = nozzleWorldPos.y;
+                    positions[i * 3 + 2] = nozzleWorldPos.z;
+
+                    colors[i * 3] = 0.3;
+                    colors[i * 3 + 1] = 0.5;
+                    colors[i * 3 + 2] = 1;
+
+                    sizes[i] = Math.random() * 0.3 + 0.1;
+
+                    const direction = this.config.side === 'left' ? -1 : 1;
+                    this.particles.push({
+                        vx: direction * (0.3 + Math.random() * 0.2),
+                        vy: (Math.random() - 0.5) * 0.1,
+                        vz: (Math.random() - 0.5) * 0.1
+                    });
+                }
+
+                const geometry = new THREE.BufferGeometry();
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+                const material = new THREE.PointsMaterial({
+                    size: 0.3,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.8,
+                    blending: THREE.AdditiveBlending
+                });
+
+                this.particleSystem = new THREE.Points(geometry, material);
+                scene.add(this.particleSystem);
+            }
+
+            update() {
+                this.life--;
+
+                const positions = this.particleSystem.geometry.attributes.position.array;
+
+                for (let i = 0; i < this.particles.length; i++) {
+                    positions[i * 3] += this.particles[i].vx;
+                    positions[i * 3 + 1] += this.particles[i].vy;
+                    positions[i * 3 + 2] += this.particles[i].vz;
+
+                    this.particles[i].vy -= 0.01; // Gravity
+                }
+
+                this.particleSystem.geometry.attributes.position.needsUpdate = true;
+                this.particleSystem.material.opacity = this.life / 30;
+
+                // Check collisions with trees
+                const sprayX = positions[0];
+                const sprayY = positions[1];
+                const sprayZ = positions[2];
+
+                trees.forEach(tree => {
+                    if (!tree.hit &&
+                        Math.abs(tree.group.position.z - sprayZ) < 2 &&
+                        Math.abs(tree.group.position.x - sprayX) < 4 &&
+                        Math.abs(tree.group.position.y + 1 + treeHeights[tree.type].height / 2 - sprayY) < 2.0) {
+
+                        // Check if correct height and spray is going the right direction (left vs right)
+                        const sprayGoingLeft = this.config.side === 'left';
+                        const treeOnCorrectSide = sprayGoingLeft ? tree.side === 'left' : tree.side === 'right';
+
+                        if (tree.type === this.config.height && treeOnCorrectSide) {
+                            tree.markHit();
+                        }
+                    }
+                });
+
+                if (this.life <= 0) {
+                    scene.remove(this.particleSystem);
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        function spawnTree() {
+            // Spawn trees consistently across all rows
+            const types = ['low', 'mid', 'high', 'dead', 'empty'];
+            const spawnZ = -140;
+
+            // Spawn a tree in every row with random types
+            treeRowPositions.forEach((treeX) => {
+                const type = types[Math.floor(Math.random() * types.length)];
+
+                // Skip spawning for empty type
+                if (type === 'empty') return;
+
+                const side = treeX < 0 ? 'left' : 'right';
+                trees.push(new Tree(treeX, type, spawnZ, side));
+            });
+        }
+
+        function updateHUD() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('missed').textContent = missed;
+            document.getElementById('distance').textContent = Math.floor(distance);
+        }
+
+        function endGame() {
+            gameRunning = false;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('treesHit').textContent = Math.floor(score / 10);
+            document.getElementById('finalDistance').textContent = Math.floor(distance);
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        window.restartGame = function() {
+            // Clear trees
+            trees.forEach(tree => scene.remove(tree.group));
+            trees = [];
+            sprays.forEach(spray => scene.remove(spray.particleSystem));
+            sprays = [];
+
+            score = 0;
+            missed = 0;
+            distance = 0;
+            gameRunning = true;
+            frameCount = 0;
+            treesInSprayZone.clear();
+            activeKeys.clear();
+
+            // Repopulate trees
+            populateInitialTrees();
+
+            document.getElementById('gameOver').style.display = 'none';
+            updateHUD();
+        };
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+
+            const key = e.key.toLowerCase();
+            if (nozzles[key] && !activeKeys.has(key)) {
+                activeKeys.add(key);
+
+                // Visual feedback
+                nozzles[key].mesh.material.emissive.setHex(0xFFD700);
+                nozzles[key].mesh.material.emissiveIntensity = 1;
+
+                const keyElement = document.getElementById(`key-${key}`);
+                if (keyElement) keyElement.classList.add('active');
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            activeKeys.delete(key);
+
+            if (nozzles[key]) {
+                nozzles[key].mesh.material.emissive.setHex(0x000000);
+                nozzles[key].mesh.material.emissiveIntensity = 0;
+
+                const keyElement = document.getElementById(`key-${key}`);
+                if (keyElement) keyElement.classList.remove('active');
+            }
+        });
+
+        // Populate initial trees in the orchard
+        function populateInitialTrees() {
+            const types = ['low', 'mid', 'high', 'dead', 'empty'];
+            // Optimized: spawn trees closer to reduce initial load
+            for (let z = -120; z < 20; z += 6) {
+                // Spawn a tree in every row with random types
+                treeRowPositions.forEach((treeX) => {
+                    const type = types[Math.floor(Math.random() * types.length)];
+
+                    // Skip spawning for empty type
+                    if (type === 'empty') return;
+
+                    const side = treeX < 0 ? 'left' : 'right';
+                    trees.push(new Tree(treeX, type, z, side));
+                });
+            }
+        }
+
+        populateInitialTrees();
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Gentle side-to-side camera sway
+            cameraSwayTime += 0.01;
+            const swayOffset = Math.sin(cameraSwayTime * swaySpeed) * swayAmplitude;
+
+            camera.position.x = cameraDefaults.x + swayOffset;
+            camera.position.y = cameraDefaults.y;
+            camera.position.z = cameraDefaults.z;
+
+            // Look at center with slight sway
+            camera.lookAt(swayOffset * 0.5, cameraDefaults.lookAtY, 0);
+
+            // Animate sun rays
+            animateSunRays();
+
+            // Animate clouds - drift slowly
+            clouds.forEach(cloud => {
+                cloud.group.position.x += cloud.speed;
+
+                // Wrap clouds around when they drift too far
+                if (cloud.group.position.x > 250) {
+                    cloud.group.position.x = -250;
+                }
+            });
+
+            if (!gameRunning) {
+                renderer.render(scene, camera);
+                return;
+            }
+
+            frameCount++;
+            distance += 0.1;
+
+            // Continuous spray for held keys - create spray every 5 frames
+            if (frameCount % 5 === 0) {
+                activeKeys.forEach(key => {
+                    if (nozzles[key]) {
+                        sprays.push(new Spray(key));
+                    }
+                });
+            }
+
+            // Spawn trees very frequently
+            if (frameCount % 20 === 0) {
+                spawnTree();
+            }
+
+            // Update trees
+            trees = trees.filter(tree => tree.update());
+
+            // Update sprays
+            sprays = sprays.filter(spray => spray.update());
+
+            // Update ground position (endless road effect)
+            ground.position.z = (ground.position.z + 0.3) % 20;
+
+            // Move all roads
+            roads.forEach(road => {
+                road.position.z = (road.position.z + 0.3) % 20;
+            });
+
+            // Move all tire tracks
+            trackPairs.forEach(pair => {
+                pair.left.position.z = (pair.left.position.z + 0.3) % 20;
+                pair.right.position.z = (pair.right.position.z + 0.3) % 20;
+            });
+
+
+            updateHUD();
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start
+        animate();
+    </script>
+
+
+</body></html>
